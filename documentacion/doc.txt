@@ -1,1 +1,102 @@
-
+Estructura ideal
+worki/
+├── backend/
+│   │
+│   ├── gateway/
+│   │   └── src/main/java/com/worki/gateway/
+│   │       ├── GatewayApplication.java
+│   │       └── config/
+│   │           ├── GatewayConfig.java        ← rutas a cada MS
+│   │           └── CorsConfig.java           ← CORS global
+│   │
+│   ├── auth-service/
+│   │   └── src/main/java/com/worki/auth/
+│   │       ├── auth/
+│   │       │   ├── AuthController.java
+│   │       │   ├── AuthService.java
+│   │       │   └── dto/
+│   │       │       ├── LoginRequest.java
+│   │       │       └── LoginResponse.java
+│   │       ├── registro/
+│   │       │   ├── RegistroController.java
+│   │       │   ├── RegistroService.java
+│   │       │   ├── Usuario.java
+│   │       │   └── UsuarioRepository.java
+│   │       └── referido/
+│   │           ├── ReferidoController.java
+│   │           ├── ReferidoService.java
+│   │           ├── Referido.java
+│   │           └── ReferidoRepository.java
+│   │
+│   ├── user-service/
+│   │   └── src/main/java/com/worki/user/
+│   │       ├── perfil/
+│   │       │   ├── PerfilController.java
+│   │       │   ├── PerfilService.java
+│   │       │   ├── Perfil.java
+│   │       │   └── PerfilRepository.java
+│   │       ├── trabajador/
+│   │       │   ├── TrabajadorController.java
+│   │       │   ├── TrabajadorService.java
+│   │       │   ├── Trabajador.java
+│   │       │   └── TrabajadorRepository.java
+│   │       └── admin/
+│   │           ├── AdminController.java
+│   │           ├── AdminService.java
+│   │           └── AdminRepository.java
+│   │
+│   ├── publication-service/
+│   │   └── src/main/java/com/worki/publication/
+│   │       ├── publicacion/
+│   │       │   ├── PublicacionController.java
+│   │       │   ├── PublicacionService.java
+│   │       │   ├── Publicacion.java
+│   │       │   └── PublicacionRepository.java
+│   │       └── busqueda/
+│   │           ├── BusquedaController.java
+│   │           ├── BusquedaService.java
+│   │           └── BusquedaRepository.java
+│   │
+│   └── interaction-service/
+│       └── src/main/java/com/worki/interaction/
+│           ├── solicitud/
+│           │   ├── SolicitudController.java
+│           │   ├── SolicitudService.java
+│           │   ├── Solicitud.java
+│           │   └── SolicitudRepository.java
+│           ├── chat/
+│           │   ├── ChatController.java       ← WebSocket
+│           │   ├── ChatService.java
+│           │   ├── Mensaje.java
+│           │   └── MensajeRepository.java
+│           └── calificacion/
+│               ├── CalificacionController.java
+│               ├── CalificacionService.java
+│               ├── Calificacion.java
+│               └── CalificacionRepository.java
+│
+└── frontend/
+    └── src/
+        ├── pages/
+        │   ├── Login/
+        │   ├── Registro/
+        │   ├── BuscarServicio/
+        │   ├── PerfilTrabajador/
+        │   ├── PerfilCliente/
+        │   ├── Publicaciones/
+        │   ├── Chat/
+        │   ├── Calificaciones/
+        │   └── Admin/
+        ├── components/
+        │   ├── Navbar/
+        │   ├── TarjetaServicio/
+        │   ├── MapaGeo/
+        │   ├── FormularioCalificacion/
+        │   └── ChatBox/
+        ├── services/
+        │   ├── authService.js
+        │   ├── userService.js
+        │   ├── publicationService.js
+        │   └── interactionService.js
+        └── context/
+            └── AuthContext.jsx              ← JWT global en React
