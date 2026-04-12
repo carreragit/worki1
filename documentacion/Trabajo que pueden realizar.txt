@@ -1,0 +1,52 @@
+Aquí va la lista detallada por módulo de lo que pueden hacer YA sin depender de José:
+
+Benjamín — User Service + Publication Service
+User Service:
+
+Crear proyecto Spring Boot con dependencias (JPA, MySQL, Web)
+Crear entidad Perfil.java con todos sus campos
+Crear entidad Trabajador.java con todos sus campos incluyendo latitud y longitud
+Crear PerfilRepository.java y TrabajadorRepository.java
+Crear PerfilService.java y TrabajadorService.java con la lógica interna
+Crear PerfilController.java y TrabajadorController.java con los endpoints
+Crear los DTOs de cada feature
+Crear los Mappers
+Configurar application.properties apuntando a worki_user_db
+Probar endpoints directamente en Postman en puerto 8082
+
+Publication Service:
+
+Crear proyecto Spring Boot
+Crear entidad Publicacion.java
+Crear PublicacionRepository.java
+Crear PublicacionService.java con lógica de publicación
+Crear BusquedaService.java con la fórmula Haversine
+Crear los controllers, DTOs y mappers
+Configurar application.properties apuntando a worki_publication_db
+Probar endpoints en Postman en puerto 8083
+
+Lo único que no puede hacer aún: proteger endpoints con JWT, porque eso depende de tu Auth Service.
+
+Naomi — Interaction Service + Frontend base
+Interaction Service:
+
+Crear proyecto Spring Boot
+Crear entidad Solicitud.java con su enum de estados (PENDIENTE, ACEPTADA, RECHAZADA)
+Crear entidad Calificacion.java con su enum de tipos (CLIENTE_A_TRABAJADOR, TRABAJADOR_A_CLIENTE, SERVICIO)
+Crear entidad Mensaje.java
+Crear todos los repositorios
+Crear SolicitudService.java con lógica interna
+Crear CalificacionService.java con lógica interna
+Crear todos los controllers, DTOs y mappers
+Configurar application.properties apuntando a worki_interaction_db
+Probar endpoints en Postman en puerto 8084
+Dejar el chat (WebSockets) para el final
+
+Frontend base (si ya se define React):
+
+Crear proyecto con Vite
+Configurar estructura de carpetas (pages, components, services, context)
+Crear AuthContext.jsx
+Crear páginas de Login y Registro con formularios (sin conectar al backend aún)
+Crear Navbar base
+Configurar React Router
