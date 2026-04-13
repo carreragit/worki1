@@ -1,0 +1,17 @@
+CLAUDE.md
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### VS Code ###
+.vscode/
+
+### Maven ###
+target/
+
+### OS ###
+.DS_Store
+Thumbs.db
