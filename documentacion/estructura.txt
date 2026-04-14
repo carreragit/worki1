@@ -40,30 +40,30 @@ worki/
 │   │       │   ├── TrabajadorService.java
 │   │       │   ├── Trabajador.java
 │   │       │   └── TrabajadorRepository.java
+│   │       ├── oficio/
+│   │       │   ├── OficioController.java     ← búsqueda por tipo/zona
+│   │       │   ├── OficioService.java
+│   │       │   ├── Oficio.java               ← entidad: un servicio que ofrece el trabajador
+│   │       │   ├── OficioRepository.java
+│   │       │   └── TipoOficio.java           ← enum: GASFITERIA, PLOMERIA, ELECTRICIDAD...
+│   │       ├── cliente/
+│   │       │   ├── ClienteController.java
+│   │       │   ├── ClienteService.java
+│   │       │   ├── Cliente.java
+│   │       │   └── ClienteRepository.java
 │   │       └── admin/
 │   │           ├── AdminController.java
 │   │           ├── AdminService.java
 │   │           └── AdminRepository.java
-│   │
-│   ├── publication-service/
-│   │   └── src/main/java/com/worki/publication/
-│   │       ├── publicacion/
-│   │       │   ├── PublicacionController.java
-│   │       │   ├── PublicacionService.java
-│   │       │   ├── Publicacion.java
-│   │       │   └── PublicacionRepository.java
-│   │       └── busqueda/
-│   │           ├── BusquedaController.java
-│   │           ├── BusquedaService.java
-│   │           └── BusquedaRepository.java
 │   │
 │   └── interaction-service/
 │       └── src/main/java/com/worki/interaction/
 │           ├── solicitud/
 │           │   ├── SolicitudController.java
 │           │   ├── SolicitudService.java
-│           │   ├── Solicitud.java
-│           │   └── SolicitudRepository.java
+│           │   ├── Solicitud.java            ← referencia oficioId (no publicacionId)
+│           │   ├── SolicitudRepository.java
+│           │   └── EstadoSolicitud.java
 │           ├── chat/
 │           │   ├── ChatController.java       ← WebSocket
 │           │   ├── ChatService.java
@@ -72,7 +72,7 @@ worki/
 │           └── calificacion/
 │               ├── CalificacionController.java
 │               ├── CalificacionService.java
-│               ├── Calificacion.java
+│               ├── Calificacion.java         ← califica un oficio específico
 │               └── CalificacionRepository.java
 │
 └── frontend/
@@ -80,10 +80,9 @@ worki/
         ├── pages/
         │   ├── Login/
         │   ├── Registro/
-        │   ├── BuscarServicio/
-        │   ├── PerfilTrabajador/
+        │   ├── BuscarTrabajador/             ← busca por TipoOficio y zona
+        │   ├── PerfilTrabajador/             ← muestra oficios + calificaciones por oficio
         │   ├── PerfilCliente/
-        │   ├── Publicaciones/
         │   ├── Chat/
         │   ├── Calificaciones/
         │   └── Admin/
