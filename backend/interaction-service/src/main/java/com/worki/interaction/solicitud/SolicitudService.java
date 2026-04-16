@@ -100,6 +100,7 @@ public class SolicitudService {
     // HELPERS PRIVADOS
     // ─────────────────────────────────────────────────────────────────────────
 
+    /** Busca una solicitud por ID o lanza EntityNotFoundException si no existe. */
     private Solicitud buscarOFallar(Long id) {
         return solicitudRepository.findById(id)
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException(
@@ -107,8 +108,10 @@ public class SolicitudService {
     }
 
     /**
-     * Reglas de transición de estado.
-     * Lanza IllegalStateException si la transición no está permitida.
+     * Verifica que el cambio de estado sea válido.
+     * PENDIENTE → ACEPTADA | RECHAZADA | CANCELADA
+     * ACEPTADA  → COMPLETADA | CANCELADA
+     * RECHAZADA, COMPLETADA, CANCELADA → ninguno (estados terminales)
      */
     private void validarTransicion(EstadoSolicitud actual, EstadoSolicitud nuevo) {
         boolean valida = switch (actual) {
@@ -117,7 +120,7 @@ public class SolicitudService {
                     || nuevo == EstadoSolicitud.CANCELADA;
             case ACEPTADA  -> nuevo == EstadoSolicitud.COMPLETADA
                     || nuevo == EstadoSolicitud.CANCELADA;
-            case RECHAZADA, COMPLETADA, CANCELADA -> false; // estados terminales
+            case RECHAZADA, COMPLETADA, CANCELADA -> false; // estados terminales: no se puede cambiar
         };
 
         if (!valida) {
@@ -126,7 +129,7 @@ public class SolicitudService {
         }
     }
 
-    /** Convierte una entidad Solicitud al DTO de respuesta */
+    /** Mapea la entidad Solicitud al DTO de respuesta que se envía al cliente. */
     private SolicitudResponse toResponse(Solicitud s) {
         return SolicitudResponse.builder()
                 .id(s.getId())

@@ -56,6 +56,7 @@ public class SolicitudController {
     /**
      * Devuelve todas las solicitudes recibidas por un trabajador.
      * Opcionalmente filtra por estado (?estado=PENDIENTE).
+     * si no se especifica estado, devuelve todas las solicitudes.
      */
     @GetMapping("/trabajador/{trabajadorId}")
     public ResponseEntity<List<SolicitudResponse>> listarPorTrabajador(

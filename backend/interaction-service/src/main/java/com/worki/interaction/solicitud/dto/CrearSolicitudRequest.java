@@ -16,6 +16,7 @@ public class CrearSolicitudRequest {
     @NotNull(message = "El ID del oficio es obligatorio")
     private Long oficioId;
 
+    @NotBlank(message = "La descripción es obligatoria")
     @Size(max = 2000, message = "La descripción no puede superar los 2000 caracteres")
-    private String descripcion;
+private String descripcion;
 }
