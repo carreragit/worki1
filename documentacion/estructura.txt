@@ -33,36 +33,27 @@ worki/
 │   │       ├── perfil/
 │   │       │   ├── PerfilController.java
 │   │       │   ├── PerfilService.java
-│   │       │   ├── Perfil.java
+│   │       │   ├── Perfil.java               ← perfil general del usuario
 │   │       │   └── PerfilRepository.java
-│   │       ├── trabajador/
-│   │       │   ├── TrabajadorController.java
-│   │       │   ├── TrabajadorService.java
-│   │       │   ├── Trabajador.java
-│   │       │   └── TrabajadorRepository.java
+│   │       ├── perfilOficio/
+│   │       │   ├── PerfilOficioController.java
+│   │       │   ├── PerfilOficioService.java
+│   │       │   ├── PerfilOficio.java         ← sub-perfil por oficio (uno por cada servicio que ofrece)
+│   │       │   └── PerfilOficioRepository.java
+│   │       ├── busqueda/
+│   │       │   ├── BusquedaController.java   ← busca usuarios por oficio
+│   │       │   └── BusquedaService.java
 │   │       └── admin/
 │   │           ├── AdminController.java
 │   │           ├── AdminService.java
 │   │           └── AdminRepository.java
-│   │
-│   ├── publication-service/
-│   │   └── src/main/java/com/worki/publication/
-│   │       ├── publicacion/
-│   │       │   ├── PublicacionController.java
-│   │       │   ├── PublicacionService.java
-│   │       │   ├── Publicacion.java
-│   │       │   └── PublicacionRepository.java
-│   │       └── busqueda/
-│   │           ├── BusquedaController.java
-│   │           ├── BusquedaService.java
-│   │           └── BusquedaRepository.java
 │   │
 │   └── interaction-service/
 │       └── src/main/java/com/worki/interaction/
 │           ├── solicitud/
 │           │   ├── SolicitudController.java
 │           │   ├── SolicitudService.java
-│           │   ├── Solicitud.java
+│           │   ├── Solicitud.java            ← referencia perfilOficioId
 │           │   └── SolicitudRepository.java
 │           ├── chat/
 │           │   ├── ChatController.java       ← WebSocket
@@ -72,7 +63,7 @@ worki/
 │           └── calificacion/
 │               ├── CalificacionController.java
 │               ├── CalificacionService.java
-│               ├── Calificacion.java
+│               ├── Calificacion.java         ← referencia perfilOficioId (calificación por oficio)
 │               └── CalificacionRepository.java
 │
 └── frontend/
@@ -81,22 +72,21 @@ worki/
         │   ├── Login/
         │   ├── Registro/
         │   ├── BuscarServicio/
-        │   ├── PerfilTrabajador/
+        │   ├── PerfilUsuario/               ← muestra perfil general + lista de oficios
+        │   ├── PerfilOficio/                ← detalle de un oficio específico con calificaciones
         │   ├── PerfilCliente/
-        │   ├── Publicaciones/
         │   ├── Chat/
         │   ├── Calificaciones/
         │   └── Admin/
         ├── components/
         │   ├── Navbar/
-        │   ├── TarjetaServicio/
+        │   ├── TarjetaOficio/               ← reemplaza TarjetaServicio, muestra un sub-perfil
         │   ├── MapaGeo/
         │   ├── FormularioCalificacion/
         │   └── ChatBox/
         ├── services/
         │   ├── authService.js
-        │   ├── userService.js
-        │   ├── publicationService.js
+        │   ├── userService.js               ← incluye llamadas a perfilOficio y busqueda
         │   └── interactionService.js
         └── context/
             └── AuthContext.jsx              ← JWT global en React
