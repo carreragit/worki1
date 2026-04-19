@@ -38,11 +38,11 @@ worki/
 │   │       ├── perfilOficio/
 │   │       │   ├── PerfilOficioController.java
 │   │       │   ├── PerfilOficioService.java
-│   │       │   ├── PerfilOficio.java         ← sub-perfil por oficio (uno por cada servicio que ofrece)
+│   │       │   ├── PerfilOficio.java         ← sub-perfil por oficio; incluye latitud, longitud, comuna y disponibilidadInmediata
 │   │       │   └── PerfilOficioRepository.java
 │   │       ├── busqueda/
-│   │       │   ├── BusquedaController.java   ← busca usuarios por oficio
-│   │       │   └── BusquedaService.java
+│   │       │   ├── BusquedaController.java   ← busca por oficio, comuna, distancia y modo emergencia
+│   │       │   └── BusquedaService.java      ← filtra por proximidad usando PostGIS
 │   │       └── admin/
 │   │           ├── AdminController.java
 │   │           ├── AdminService.java
@@ -60,11 +60,16 @@ worki/
 │           │   ├── ChatService.java
 │           │   ├── Mensaje.java
 │           │   └── MensajeRepository.java
-│           └── calificacion/
-│               ├── CalificacionController.java
-│               ├── CalificacionService.java
-│               ├── Calificacion.java         ← referencia perfilOficioId (calificación por oficio)
-│               └── CalificacionRepository.java
+│           ├── calificacion/
+│           │   ├── CalificacionController.java
+│           │   ├── CalificacionService.java
+│           │   ├── Calificacion.java         ← referencia perfilOficioId (calificación por oficio)
+│           │   └── CalificacionRepository.java
+│           └── comprobante/
+│               ├── ComprobanteController.java
+│               ├── ComprobanteService.java
+│               ├── Comprobante.java          ← boleta/foto asociada a una Solicitud, subida por cliente o trabajador
+│               └── ComprobanteRepository.java
 │
 └── frontend/
     └── src/
@@ -77,12 +82,14 @@ worki/
         │   ├── PerfilCliente/
         │   ├── Chat/
         │   ├── Calificaciones/
+        │   ├── Comprobantes/
         │   └── Admin/
         ├── components/
         │   ├── Navbar/
         │   ├── TarjetaOficio/               ← reemplaza TarjetaServicio, muestra un sub-perfil
         │   ├── MapaGeo/
         │   ├── FormularioCalificacion/
+        │   ├── SubirComprobante/
         │   └── ChatBox/
         ├── services/
         │   ├── authService.js
