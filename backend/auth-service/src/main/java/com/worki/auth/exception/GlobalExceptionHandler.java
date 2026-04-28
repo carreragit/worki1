@@ -2,10 +2,12 @@ package com.worki.auth.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 // @RestControllerAdvice le dice a Spring que esta clase intercepta excepciones lanzadas
 // en cualquier controller de la aplicación, no hay que importarla ni referenciarla en ningún lado
@@ -39,6 +41,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleCredencialesInvalidas(CredencialesInvalidasException e) {
         // 401: no autenticado - mensaje genérico para no revelar si el email existe o no
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
+    }
+
+    // Captura errores de validacion de DTOs - @NotBlank, @Email, @Size, @Pattern, etc.
+    // Spring lanza esta excepcion automaticamente cuando @Valid falla en el controller
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidacion(MethodArgumentNotValidException e) {
+        // recolecta todos los mensajes de error de cada campo que falló
+        String errores = e.getBindingResult().getFieldErrors().stream()
+            .map(field -> field.getField() + ": " + field.getDefaultMessage())
+            .collect(Collectors.joining(", "));
+        // 400: la request tiene datos invalidos
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", errores));
     }
 
     // Captura login de usuario que aún no verificó su email

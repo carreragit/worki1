@@ -1,6 +1,7 @@
 package com.worki.auth.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,5 +19,10 @@ public class ResetPasswordRequest {
 
     @NotBlank(message = "La nueva contraseña es obligatoria")
     @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres")
+    // al menos una mayúscula, una minúscula, un número y un carácter especial
+    @Pattern(
+        regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).+$",
+        message = "La contraseña debe tener al menos una mayúscula, una minúscula, un número y un carácter especial"
+    )
     private String nuevaPassword;
 }
