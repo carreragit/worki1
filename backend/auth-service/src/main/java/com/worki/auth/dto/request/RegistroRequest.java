@@ -14,6 +14,9 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class RegistroRequest {
 
+    @NotBlank(message = "El nombre es obligatorio")
+    private String nombre;
+
     @NotBlank(message = "El email es obligatorio")
     @Email(message = "El email no tiene formato válido")
     private String email;

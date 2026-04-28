@@ -34,6 +34,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
     }
 
+    // Captura login con email o password incorrectos
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<Map<String, String>> handleCredencialesInvalidas(CredencialesInvalidasException e) {
+        // 401: no autenticado - mensaje genérico para no revelar si el email existe o no
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
+    }
+
+    // Captura login de usuario que aún no verificó su email
+    @ExceptionHandler(EmailNoVerificadoException.class)
+    public ResponseEntity<Map<String, String>> handleEmailNoVerificado(EmailNoVerificadoException e) {
+        // 403: autenticado pero sin permiso hasta verificar email
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+    }
+
     // Captura cualquier excepción no manejada arriba - último recurso
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneral(Exception e) {
