@@ -69,7 +69,7 @@ public class AuthService {
         TokenEmail tokenVerificacion = new TokenEmail();
         tokenVerificacion.setIdUsuario(usuario.getId());
         tokenVerificacion.setToken(UUID.randomUUID().toString());
-        tokenVerificacion.setTipo(TipoToken.VERIFICACION);
+        tokenVerificacion.setTipo(TipoToken.VERIFICACION_EMAIL);
         tokenVerificacion.setExpira(LocalDateTime.now().plusHours(24));
         tokenEmailRepository.save(tokenVerificacion);
 
@@ -103,7 +103,7 @@ public class AuthService {
     @Transactional
     public void verificarEmail(String token) {
         // busca el token en BD filtrando por tipo VERIFICACION para no confundirlo con RECUPERACION
-        TokenEmail tokenEmail = tokenEmailRepository.findByTokenAndTipo(token, TipoToken.VERIFICACION)
+        TokenEmail tokenEmail = tokenEmailRepository.findByTokenAndTipo(token, TipoToken.VERIFICACION_EMAIL)
             .orElseThrow(() -> new TokenInvalidoException("Token de verificación inválido"));
 
         // valida que no haya sido usado antes y que no haya expirado
@@ -131,7 +131,7 @@ public class AuthService {
         TokenEmail tokenRecuperacion = new TokenEmail();
         tokenRecuperacion.setIdUsuario(usuario.getId());
         tokenRecuperacion.setToken(UUID.randomUUID().toString());
-        tokenRecuperacion.setTipo(TipoToken.RECUPERACION);
+        tokenRecuperacion.setTipo(TipoToken.RESET_PASSWORD);
         tokenRecuperacion.setExpira(LocalDateTime.now().plusHours(1));
         tokenEmailRepository.save(tokenRecuperacion);
 
@@ -142,7 +142,7 @@ public class AuthService {
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         // busca el token filtrando por tipo RECUPERACION para no confundirlo con VERIFICACION
-        TokenEmail tokenEmail = tokenEmailRepository.findByTokenAndTipo(request.getToken(), TipoToken.RECUPERACION)
+        TokenEmail tokenEmail = tokenEmailRepository.findByTokenAndTipo(request.getToken(), TipoToken.RESET_PASSWORD)
             .orElseThrow(() -> new TokenInvalidoException("Token de recuperación inválido"));
 
         // valida que no haya sido usado antes y que no haya expirado
