@@ -15,8 +15,8 @@
     <description>API Gateway para los microservicios Worki</description>
 
     <properties>
-        <!-- Verificar versión compatible con Spring Boot 4.0.x en: https://spring.io/projects/spring-cloud -->
-        <spring-cloud.version>2025.0.0</spring-cloud.version>
+        <!-- Spring Cloud 2025.0.x (Northfields) es compatible con Spring Boot 3.5.x -->
+        <spring-cloud.version>2025.0.2</spring-cloud.version>
     </properties>
 
     <dependencyManagement>
@@ -35,6 +35,25 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway</artifactId>
+        </dependency>
+
+        <!-- JWT - misma version que auth-service para compatibilidad de tokens -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.6</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>
