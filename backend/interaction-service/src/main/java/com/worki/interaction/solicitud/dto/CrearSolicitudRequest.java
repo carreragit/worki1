@@ -2,6 +2,7 @@ package com.worki.interaction.solicitud.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
