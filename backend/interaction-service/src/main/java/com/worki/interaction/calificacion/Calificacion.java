@@ -33,7 +33,7 @@ public class Calificacion {
     private Long solicitudId;
 
     /**
-     * ID del Oficio calificado (referencia a user-service → Oficio).
+     * ID del Oficio calificado (referencia a user-service Oficio).
      * Permite recalcular la calificación promedio de ese oficio específico
      * sin afectar otros oficios del mismo trabajador.
      */
