@@ -9,6 +9,9 @@ CLAUDE.md
 ### VS Code ###
 .vscode/
 
+### Secrets - no subir al repo ###
+**/application-local.properties
+
 ### Maven ###
 target/
 
