@@ -6,7 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 
 // Emulador Android usar: http://10.0.2.2:8080
 // Dispositivo fisico usar: http://<tu-ip-local>:8080
-const GATEWAY_URL = 'http://192.168.10.109:8080';
+const GATEWAY_URL = 'http://192.168.1.102:8080';
 const JWT_KEY = 'worki_jwt';
 
 const api = axios.create({
