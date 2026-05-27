@@ -1,3 +1,6 @@
+
+
+
 # Worki — Frontend React Native (Estilo "Worki Soft")
 > Spec de diseño aprobado · 2026-05-27
 
@@ -151,9 +154,8 @@ Bottom Tab Navigator
 ### Comportamiento
 
 - **Filtros:** Todas / Pendientes / Activas (ACEPTADA) / Completadas
-- **API:** `GET /api/solicitudes/cliente/{clienteId}` (directo al Interaction Service en :8084)
-  - `clienteId` extraído del JWT con `jwt-decode`
-  - > ⚠️ **Nota:** el gateway enruta `/api/interacciones/**` pero el controller backend está en `/api/solicitudes`. Sin `StripPrefix`, el path gateway correcto sería `/api/interacciones/solicitudes/...` — verificar con el equipo backend antes de integrar. Por ahora usar el path del controller directamente.
+- **API:** `GET /api/interacciones/solicitudes/cliente/{clienteId}` (a través del Gateway :8080)
+  - `clienteId` extraído del JWT decodificado (campo `sub`)
 - **SolicitudCard:** descripción truncada a 1 línea, fecha relativa, badge de estado
 - **Estado vacío:** ícono + "Aún no tienes solicitudes"
 
@@ -184,7 +186,7 @@ getDestacados(oficio?: string) →
 
 ```
 getMisSolicitudes(clienteId: number) →
-  GET /api/interacciones/solicitudes/cliente/{clienteId}
+  GET /api/interacciones/solicitudes/cliente/{clienteId}  (a través del Gateway :8080)
   Headers: Authorization: Bearer {token}
 ```
 

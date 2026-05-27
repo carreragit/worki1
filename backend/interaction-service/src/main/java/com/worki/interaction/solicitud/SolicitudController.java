@@ -13,10 +13,11 @@ import java.util.List;
 
 /**
  * REST Controller para gestión de solicitudes de servicio.
- * Puerto: 8084 — Base path: /api/solicitudes
+ * Puerto: 8084 — Base path: /api/interacciones/solicitudes
+ * El gateway enruta /api/interacciones/** a este servicio.
  */
 @RestController
-@RequestMapping("/api/solicitudes")
+@RequestMapping("/api/interacciones/solicitudes")
 @RequiredArgsConstructor
 public class SolicitudController {
 
