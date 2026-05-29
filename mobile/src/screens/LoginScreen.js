@@ -31,7 +31,7 @@ export default function LoginScreen({ navigation, route }) {
     try {
       await login(email, password);
       // replace evita que el usuario vuelva al login con el boton atras
-      navigation.replace('WebView');
+      navigation.replace('Tabs');
     } catch (e) {
       if (e.response?.status === 403) {
         setError('Debes verificar tu email antes de iniciar sesion. Revisa tu bandeja de entrada.');
