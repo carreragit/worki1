@@ -16,7 +16,7 @@ import java.util.List;
  * Puerto: 8084 — Base path: /api/solicitudes
  */
 @RestController
-@RequestMapping("/api/solicitudes")
+@RequestMapping("/api/interacciones/solicitudes")
 @RequiredArgsConstructor
 public class SolicitudController {
 

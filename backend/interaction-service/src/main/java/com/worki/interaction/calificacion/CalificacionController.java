@@ -13,10 +13,11 @@ import java.util.List;
 
 /**
  * REST Controller para calificaciones de servicio.
- * Puerto: 8084 — Base path: /api/calificaciones
+ * Puerto: 8084 — Base path: /api/interacciones/calificaciones
+ * El gateway enruta /api/interacciones/** a este servicio.
  */
 @RestController
-@RequestMapping("/api/calificaciones")
+@RequestMapping("/api/interacciones/calificaciones")
 @RequiredArgsConstructor
 public class CalificacionController {
 
