@@ -16,6 +16,7 @@ const ICONOS = {
 export default function TabNavigator() {
   return (
     <Tab.Navigator
+      id="TabsPrincipal"
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor:   '#16A34A',
