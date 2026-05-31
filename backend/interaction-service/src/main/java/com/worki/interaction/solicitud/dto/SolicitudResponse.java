@@ -16,6 +16,8 @@ public class SolicitudResponse {
     private Long oficioId;
     private EstadoSolicitud estado;
     private String descripcion;
+    private Double clienteLatitud;
+    private Double clienteLongitud;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

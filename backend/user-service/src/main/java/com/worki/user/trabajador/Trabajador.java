@@ -22,33 +22,13 @@ public class Trabajador {
     @Column(nullable = false, unique = true)
     private Long perfilId;
 
-    @Column(nullable = false, length = 150)
-    private String especialidad;
-
-    @Column(columnDefinition = "TEXT")
-    private String descripcionServicio;
-
-    // Tarifa en pesos (CLP)
-    private Integer tarifaHora;
-
-    // Coordenadas para búsqueda Haversine desde el publication-service
+    // Coordenadas para búsqueda geográfica (Haversine)
     @Column(nullable = false)
     private Double latitud;
 
     @Column(nullable = false)
     private Double longitud;
 
-    // Radio en kilómetros en el que el trabajador está dispuesto a trabajar
+    // Radio en kilómetros en el que el trabajador opera
     private Double radioKm;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean disponible = true;
-
-    // Promedio calculado a partir de las calificaciones (actualizado por interaction-service)
-    @Builder.Default
-    private Double promedioCalificacion = 0.0;
-
-    @Builder.Default
-    private Integer totalCalificaciones = 0;
 }

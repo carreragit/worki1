@@ -43,6 +43,8 @@ public class SolicitudService {
                 .trabajadorId(request.getTrabajadorId())
                 .oficioId(request.getOficioId())
                 .descripcion(request.getDescripcion())
+                .clienteLatitud(request.getClienteLatitud())
+                .clienteLongitud(request.getClienteLongitud())
                 .build();
 
         Solicitud guardada = solicitudRepository.save(nuevaSolicitud);
@@ -138,6 +140,8 @@ public class SolicitudService {
                 .oficioId(s.getOficioId())
                 .estado(s.getEstado())
                 .descripcion(s.getDescripcion())
+                .clienteLatitud(s.getClienteLatitud())
+                .clienteLongitud(s.getClienteLongitud())
                 .createdAt(s.getCreatedAt())
                 .updatedAt(s.getUpdatedAt())
                 .build();

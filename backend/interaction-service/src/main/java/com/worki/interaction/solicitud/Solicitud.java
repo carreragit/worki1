@@ -50,6 +50,13 @@ public class Solicitud {
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
+    /** Ubicación del cliente al momento de crear la solicitud, para que el trabajador sepa dónde ir */
+    @Column(name = "cliente_latitud")
+    private Double clienteLatitud;
+
+    @Column(name = "cliente_longitud")
+    private Double clienteLongitud;
+
     /**Fecha de creación de la solicitud */
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
