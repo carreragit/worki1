@@ -1,7 +1,3 @@
-    // Pantalla de login nativa: primer punto de entrada de la app.
-// Captura email y password, llama al gateway via authService,
-// y navega al WebView si el login es exitoso.
-
 import { useState } from 'react';
 import {
   View,
@@ -13,15 +9,18 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { login } from '../services/authService';
+import { COLORS, GRADIENTS, RADII, SHADOWS } from '../theme';
 
 export default function LoginScreen({ navigation, route }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail]                     = useState('');
+  const [password, setPassword]               = useState('');
   const [mostrarPassword, setMostrarPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError]                     = useState('');
+  const [loading, setLoading]                 = useState(false);
 
   const mensajeExito = route.params?.mensajeExito;
 
@@ -30,7 +29,6 @@ export default function LoginScreen({ navigation, route }) {
     setLoading(true);
     try {
       await login(email, password);
-      // replace evita que el usuario vuelva al login con el boton atras
       navigation.replace('Tabs');
     } catch (e) {
       if (e.response?.status === 403) {
@@ -44,122 +42,121 @@ export default function LoginScreen({ navigation, route }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <Text style={styles.titulo}>Worki</Text>
-      <Text style={styles.subtitulo}>Inicia sesion para continuar</Text>
+    <SafeAreaView style={styles.pantalla}>
+      <LinearGradient
+        colors={GRADIENTS.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <Text style={styles.headerTitulo}>Worki</Text>
+        <Text style={styles.headerSubtitulo}>Conectamos personas con servicios</Text>
+      </LinearGradient>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
+      <KeyboardAvoidingView
+        style={styles.formulario}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <Text style={styles.titulo}>Iniciar sesion</Text>
+        <Text style={styles.subtitulo}>Ingresa tus credenciales para continuar</Text>
 
-      <View style={styles.inputContainer}>
         <TextInput
-          style={styles.inputTexto}
-          placeholder="Contrasena"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry={!mostrarPassword}
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor={COLORS.textMuted}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
         />
-        <TouchableOpacity onPress={() => setMostrarPassword(!mostrarPassword)} style={styles.ojito}>
-          <Ionicons name={mostrarPassword ? 'eye-off' : 'eye'} size={22} color="#999" />
+
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.inputTexto}
+            placeholder="Contrasena"
+            placeholderTextColor={COLORS.textMuted}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!mostrarPassword}
+          />
+          <TouchableOpacity onPress={() => setMostrarPassword(!mostrarPassword)} style={styles.ojito}>
+            <Ionicons name={mostrarPassword ? 'eye-off' : 'eye'} size={22} color={COLORS.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        {mensajeExito ? <Text style={styles.exito}>{mensajeExito}</Text> : null}
+        {error        ? <Text style={styles.error}>{error}</Text>        : null}
+
+        <TouchableOpacity style={styles.boton} onPress={handleLogin} disabled={loading}>
+          {loading
+            ? <ActivityIndicator color={COLORS.surface} />
+            : <Text style={styles.botonTexto}>Iniciar sesion</Text>
+          }
         </TouchableOpacity>
-      </View>
 
-      {mensajeExito ? <Text style={styles.exito}>{mensajeExito}</Text> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <TouchableOpacity style={styles.boton} onPress={handleLogin} disabled={loading}>
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.botonTexto}>Iniciar sesion</Text>
-        }
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate('Registro')}>
-        <Text style={styles.link}>No tienes cuenta? Registrate</Text>
-      </TouchableOpacity>
-    </KeyboardAvoidingView>
+        <TouchableOpacity onPress={() => navigation.navigate('Registro')}>
+          <Text style={styles.link}>No tienes cuenta? <Text style={styles.linkNegrita}>Registrate</Text></Text>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
+  pantalla: { flex: 1, backgroundColor: COLORS.background },
+
+  header: {
+    paddingTop: 48,
+    paddingBottom: 40,
     paddingHorizontal: 24,
-    backgroundColor: '#fff',
+    borderBottomLeftRadius:  RADII.full,
+    borderBottomRightRadius: RADII.full,
+    alignItems: 'center',
   },
-  titulo: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-    color: '#1a1a1a',
-  },
-  subtitulo: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-    color: '#666',
-  },
+  headerTitulo:    { color: COLORS.surface, fontSize: 38, fontWeight: '800' },
+  headerSubtitulo: { color: COLORS.primaryLight, fontSize: 14, marginTop: 6 },
+
+  formulario: { flex: 1, paddingHorizontal: 24, paddingTop: 32 },
+
+  titulo:    { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
+  subtitulo: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 28 },
+
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 16,
-    fontSize: 16,
+    borderColor:     COLORS.border,
+    borderRadius:    RADII.md,
+    padding:         14,
+    marginBottom:    16,
+    fontSize:        15,
+    backgroundColor: COLORS.surface,
+    color:           COLORS.textPrimary,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginBottom: 16,
+    flexDirection:   'row',
+    alignItems:      'center',
+    borderWidth:     1,
+    borderColor:     COLORS.border,
+    borderRadius:    RADII.md,
+    marginBottom:    16,
+    backgroundColor: COLORS.surface,
   },
-  inputTexto: {
-    flex: 1,
-    padding: 14,
-    fontSize: 16,
-  },
-  ojito: {
-    padding: 14,
-  },
-  exito: {
-    color: '#16a34a',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  error: {
-    color: '#e53e3e',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
+  inputTexto: { flex: 1, padding: 14, fontSize: 15, color: COLORS.textPrimary },
+  ojito:      { padding: 14 },
+
+  exito: { color: COLORS.success, marginBottom: 12, textAlign: 'center', fontSize: 13 },
+  error: { color: COLORS.error,   marginBottom: 12, textAlign: 'center', fontSize: 13 },
+
   boton: {
-    backgroundColor: '#2563eb',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 16,
+    backgroundColor: COLORS.primary,
+    padding:         16,
+    borderRadius:    RADII.md,
+    alignItems:      'center',
+    marginBottom:    20,
+    ...SHADOWS.boton,
   },
-  botonTexto: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  link: {
-    textAlign: 'center',
-    color: '#2563eb',
-    fontSize: 14,
-  },
+  botonTexto: { color: COLORS.surface, fontSize: 16, fontWeight: '700' },
+
+  link:        { textAlign: 'center', color: COLORS.textSecondary, fontSize: 14 },
+  linkNegrita: { color: COLORS.primary, fontWeight: '700' },
 });
