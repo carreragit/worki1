@@ -1,6 +1,3 @@
-// Pantalla de registro nativa: permite crear una cuenta nueva.
-// Tras el registro exitoso vuelve al Login con un mensaje para que el usuario verifique su email.
-
 import { useState } from 'react';
 import {
   View,
@@ -12,20 +9,23 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  SafeAreaView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { registro } from '../services/authService';
+import { COLORS, GRADIENTS, RADII, SHADOWS } from '../theme';
 
 export default function RegisterScreen({ navigation }) {
-  const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [nombre, setNombre]                   = useState('');
+  const [email, setEmail]                     = useState('');
+  const [password, setPassword]               = useState('');
   const [confirmarPassword, setConfirmarPassword] = useState('');
-  const [codigoReferido, setCodigoReferido] = useState('');
+  const [codigoReferido, setCodigoReferido]   = useState('');
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError]                     = useState('');
+  const [loading, setLoading]                 = useState(false);
 
   const validarPassword = (pwd) => {
     if (pwd.length < 8) return 'La contrasena debe tener al menos 8 caracteres';
@@ -39,10 +39,7 @@ export default function RegisterScreen({ navigation }) {
   const handleRegistro = async () => {
     setError('');
 
-    if (!nombre.trim()) {
-      setError('El nombre es obligatorio');
-      return;
-    }
+    if (!nombre.trim()) { setError('El nombre es obligatorio'); return; }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError('El email no tiene formato valido');
@@ -50,183 +47,176 @@ export default function RegisterScreen({ navigation }) {
     }
 
     const errorPassword = validarPassword(password);
-    if (errorPassword) {
-      setError(errorPassword);
-      return;
-    }
+    if (errorPassword) { setError(errorPassword); return; }
 
-    if (password !== confirmarPassword) {
-      setError('Las contrasenas no coinciden');
-      return;
-    }
+    if (password !== confirmarPassword) { setError('Las contrasenas no coinciden'); return; }
 
     setLoading(true);
     try {
       await registro(nombre, email, password, codigoReferido || null);
-      // Volver al Login con mensaje: el usuario debe verificar su email antes de ingresar
       navigation.navigate('Login', { mensajeExito: 'Cuenta creada. Revisa tu email para verificarla.' });
     } catch (e) {
-      const msg = e.response?.data?.error || 'Error al registrarse. Intenta nuevamente.';
-      setError(msg);
+      setError(e.response?.data?.error || 'Error al registrarse. Intenta nuevamente.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.titulo}>Crear cuenta</Text>
-        <Text style={styles.subtitulo}>Completa tus datos para registrarte</Text>
+    <SafeAreaView style={styles.pantalla}>
+      <LinearGradient
+        colors={GRADIENTS.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <Text style={styles.headerTitulo}>Worki</Text>
+        <Text style={styles.headerSubtitulo}>Crea tu cuenta gratis</Text>
+      </LinearGradient>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Nombre completo"
-          value={nombre}
-          onChangeText={setNombre}
-          autoCapitalize="words"
-          autoCorrect={false}
-        />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.formulario} keyboardShouldPersistTaps="handled">
+          <Text style={styles.titulo}>Crear cuenta</Text>
+          <Text style={styles.subtitulo}>Completa tus datos para registrarte</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        <View style={styles.inputContainer}>
           <TextInput
-            style={styles.inputTexto}
-            placeholder="Contrasena"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!mostrarPassword}
+            style={styles.input}
+            placeholder="Nombre completo"
+            placeholderTextColor={COLORS.textMuted}
+            value={nombre}
+            onChangeText={setNombre}
+            autoCapitalize="words"
+            autoCorrect={false}
           />
-          <TouchableOpacity onPress={() => setMostrarPassword(!mostrarPassword)} style={styles.ojito}>
-            <Ionicons name={mostrarPassword ? 'eye-off' : 'eye'} size={22} color="#999" />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.hint}>
-          Minimo 8 caracteres, una mayuscula, una minuscula, un numero y un caracter especial
-        </Text>
 
-        <View style={styles.inputContainer}>
           <TextInput
-            style={styles.inputTexto}
-            placeholder="Confirmar contrasena"
-            value={confirmarPassword}
-            onChangeText={setConfirmarPassword}
-            secureTextEntry={!mostrarConfirmar}
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor={COLORS.textMuted}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
-          <TouchableOpacity onPress={() => setMostrarConfirmar(!mostrarConfirmar)} style={styles.ojito}>
-            <Ionicons name={mostrarConfirmar ? 'eye-off' : 'eye'} size={22} color="#999" />
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.inputTexto}
+              placeholder="Contrasena"
+              placeholderTextColor={COLORS.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!mostrarPassword}
+            />
+            <TouchableOpacity onPress={() => setMostrarPassword(!mostrarPassword)} style={styles.ojito}>
+              <Ionicons name={mostrarPassword ? 'eye-off' : 'eye'} size={22} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.hint}>
+            Minimo 8 caracteres, una mayuscula, una minuscula, un numero y un caracter especial
+          </Text>
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.inputTexto}
+              placeholder="Confirmar contrasena"
+              placeholderTextColor={COLORS.textMuted}
+              value={confirmarPassword}
+              onChangeText={setConfirmarPassword}
+              secureTextEntry={!mostrarConfirmar}
+            />
+            <TouchableOpacity onPress={() => setMostrarConfirmar(!mostrarConfirmar)} style={styles.ojito}>
+              <Ionicons name={mostrarConfirmar ? 'eye-off' : 'eye'} size={22} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Codigo de referido (opcional)"
+            placeholderTextColor={COLORS.textMuted}
+            value={codigoReferido}
+            onChangeText={setCodigoReferido}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <TouchableOpacity style={styles.boton} onPress={handleRegistro} disabled={loading}>
+            {loading
+              ? <ActivityIndicator color={COLORS.surface} />
+              : <Text style={styles.botonTexto}>Crear cuenta</Text>
+            }
           </TouchableOpacity>
-        </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Codigo de referido (opcional)"
-          value={codigoReferido}
-          onChangeText={setCodigoReferido}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <TouchableOpacity style={styles.boton} onPress={handleRegistro} disabled={loading}>
-          {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.botonTexto}>Crear cuenta</Text>
-          }
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.link}>Ya tienes cuenta? Inicia sesion</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.link}>Ya tienes cuenta? <Text style={styles.linkNegrita}>Inicia sesion</Text></Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    justifyContent: 'center',
+  pantalla: { flex: 1, backgroundColor: COLORS.background },
+
+  header: {
+    paddingTop: 40,
+    paddingBottom: 32,
     paddingHorizontal: 24,
-    paddingVertical: 40,
-    backgroundColor: '#fff',
+    borderBottomLeftRadius:  RADII.full,
+    borderBottomRightRadius: RADII.full,
+    alignItems: 'center',
   },
-  titulo: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-    color: '#1a1a1a',
-  },
-  subtitulo: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-    color: '#666',
-  },
+  headerTitulo:    { color: COLORS.surface, fontSize: 38, fontWeight: '800' },
+  headerSubtitulo: { color: COLORS.primaryLight, fontSize: 14, marginTop: 6 },
+
+  formulario: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 40 },
+
+  titulo:    { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
+  subtitulo: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 24 },
+
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 16,
-    fontSize: 16,
+    borderWidth:     1,
+    borderColor:     COLORS.border,
+    borderRadius:    RADII.md,
+    padding:         14,
+    marginBottom:    16,
+    fontSize:        15,
+    backgroundColor: COLORS.surface,
+    color:           COLORS.textPrimary,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginBottom: 16,
+    flexDirection:   'row',
+    alignItems:      'center',
+    borderWidth:     1,
+    borderColor:     COLORS.border,
+    borderRadius:    RADII.md,
+    marginBottom:    8,
+    backgroundColor: COLORS.surface,
   },
-  inputTexto: {
-    flex: 1,
-    padding: 14,
-    fontSize: 16,
-  },
-  ojito: {
-    padding: 14,
-  },
-  hint: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 16,
-    marginTop: -8,
-  },
-  error: {
-    color: '#e53e3e',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
+  inputTexto: { flex: 1, padding: 14, fontSize: 15, color: COLORS.textPrimary },
+  ojito:      { padding: 14 },
+
+  hint:  { fontSize: 12, color: COLORS.textMuted, marginBottom: 16, marginTop: 2 },
+  error: { color: COLORS.error, marginBottom: 12, textAlign: 'center', fontSize: 13 },
+
   boton: {
-    backgroundColor: '#2563eb',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 16,
+    backgroundColor: COLORS.primary,
+    padding:         16,
+    borderRadius:    RADII.md,
+    alignItems:      'center',
+    marginBottom:    20,
+    marginTop:       8,
+    ...SHADOWS.boton,
   },
-  botonTexto: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  link: {
-    textAlign: 'center',
-    color: '#2563eb',
-    fontSize: 14,
-  },
+  botonTexto: { color: COLORS.surface, fontSize: 16, fontWeight: '700' },
+
+  link:        { textAlign: 'center', color: COLORS.textSecondary, fontSize: 14 },
+  linkNegrita: { color: COLORS.primary, fontWeight: '700' },
 });
