@@ -7,9 +7,12 @@ import com.worki.interaction.solicitud.EstadoSolicitud;
 import com.worki.interaction.solicitud.Solicitud;
 import com.worki.interaction.solicitud.SolicitudRepository;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,6 +24,10 @@ public class CalificacionService {
 
     private final CalificacionRepository calificacionRepository;
     private final SolicitudRepository solicitudRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${user-service.url}")
+    private String userServiceUrl;
 
     // ─────────────────────────────────────────────────────────────────────────
     // CREAR
@@ -69,7 +76,30 @@ public class CalificacionService {
                 .comentario(request.getComentario())
                 .build();
 
-        return toResponse(calificacionRepository.save(nueva));
+        CalificacionResponse response = toResponse(calificacionRepository.save(nueva));
+
+        // Notifica a user-service para que actualice el promedio del oficio
+        actualizarPromedioEnUserService(request.getOficioId());
+
+        return response;
+    }
+
+    private void actualizarPromedioEnUserService(Long oficioId) {
+        Double promedio = calificacionRepository.calcularPromedioPorOficio(oficioId).orElse(0.0);
+        int total = calificacionRepository.findByOficioId(oficioId).size();
+
+        ActualizarPromedioRequest body = new ActualizarPromedioRequest();
+        body.setPromedio(Math.round(promedio * 100.0) / 100.0);
+        body.setTotalCalificaciones(total);
+
+        String url = userServiceUrl + "/internal/oficios/" + oficioId + "/promedio";
+        restTemplate.patchForObject(url, body, Void.class);
+    }
+
+    @Data
+    private static class ActualizarPromedioRequest {
+        private Double promedio;
+        private Integer totalCalificaciones;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

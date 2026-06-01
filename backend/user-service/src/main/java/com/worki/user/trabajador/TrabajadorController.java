@@ -29,19 +29,6 @@ public class TrabajadorController {
         return ResponseEntity.ok(trabajadorService.obtenerTodos());
     }
 
-    // GET /api/trabajadores/disponibles
-    @GetMapping("/disponibles")
-    public ResponseEntity<List<TrabajadorResponseDTO>> obtenerDisponibles() {
-        return ResponseEntity.ok(trabajadorService.obtenerDisponibles());
-    }
-
-    // GET /api/trabajadores/buscar?especialidad=plomero
-    @GetMapping("/buscar")
-    public ResponseEntity<List<TrabajadorResponseDTO>> buscarPorEspecialidad(
-            @RequestParam String especialidad) {
-        return ResponseEntity.ok(trabajadorService.buscarPorEspecialidad(especialidad));
-    }
-
     // GET /api/trabajadores/{id}
     @GetMapping("/{id}")
     public ResponseEntity<TrabajadorResponseDTO> obtenerPorId(@PathVariable Long id) {
@@ -54,14 +41,6 @@ public class TrabajadorController {
             @PathVariable Long id,
             @Valid @RequestBody TrabajadorRequestDTO dto) {
         return ResponseEntity.ok(trabajadorService.actualizarTrabajador(id, dto));
-    }
-
-    // PATCH /api/trabajadores/{id}/disponibilidad?valor=false
-    @PatchMapping("/{id}/disponibilidad")
-    public ResponseEntity<TrabajadorResponseDTO> cambiarDisponibilidad(
-            @PathVariable Long id,
-            @RequestParam boolean valor) {
-        return ResponseEntity.ok(trabajadorService.cambiarDisponibilidad(id, valor));
     }
 
     // DELETE /api/trabajadores/{id}

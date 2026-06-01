@@ -32,22 +32,6 @@ public class TrabajadorService {
                 .collect(Collectors.toList());
     }
 
-    // Solo los disponibles
-    public List<TrabajadorResponseDTO> obtenerDisponibles() {
-        return trabajadorRepository.findByDisponibleTrue()
-                .stream()
-                .map(trabajadorMapper::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    // Buscar por especialidad
-    public List<TrabajadorResponseDTO> buscarPorEspecialidad(String especialidad) {
-        return trabajadorRepository.findByEspecialidadContainingIgnoreCase(especialidad)
-                .stream()
-                .map(trabajadorMapper::toDTO)
-                .collect(Collectors.toList());
-    }
-
     // Obtener trabajador por ID
     public TrabajadorResponseDTO obtenerPorId(Long id) {
         Trabajador t = trabajadorRepository.findById(id)
@@ -60,14 +44,6 @@ public class TrabajadorService {
         Trabajador t = trabajadorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Trabajador no encontrado con id: " + id));
         trabajadorMapper.updateEntity(t, dto);
-        return trabajadorMapper.toDTO(trabajadorRepository.save(t));
-    }
-
-    // Cambiar disponibilidad rápidamente
-    public TrabajadorResponseDTO cambiarDisponibilidad(Long id, boolean disponible) {
-        Trabajador t = trabajadorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Trabajador no encontrado con id: " + id));
-        t.setDisponible(disponible);
         return trabajadorMapper.toDTO(trabajadorRepository.save(t));
     }
 

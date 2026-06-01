@@ -19,5 +19,9 @@ public class CrearSolicitudRequest {
 
     @NotBlank(message = "La descripción es obligatoria")
     @Size(max = 2000, message = "La descripción no puede superar los 2000 caracteres")
-private String descripcion;
+    private String descripcion;
+
+    private Double clienteLatitud;
+
+    private Double clienteLongitud;
 }
