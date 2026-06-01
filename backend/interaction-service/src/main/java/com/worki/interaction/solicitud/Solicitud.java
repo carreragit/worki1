@@ -21,58 +21,52 @@ public class Solicitud {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** ID del cliente que envía la solicitud (referencia a user-service → Perfil) */
     @NotNull
     @Column(name = "cliente_id", nullable = false)
     private Long clienteId;
 
-    /** ID del trabajador al que se le envía la solicitud (referencia a user-service → Trabajador) */
     @NotNull
     @Column(name = "trabajador_id", nullable = false)
     private Long trabajadorId;
 
-    /**
-     * ID del Oficio específico que el cliente está contratando (referencia a user-service → Oficio).
-     * Define qué servicio puntual se solicita (ej: gasfitería de Juan, no plomería de Juan).
-     * La Calificacion posterior quedará vinculada a este Oficio para mantener ratings por servicio.
-     */
-    @NotNull
-    @Column(name = "oficio_id", nullable = false)
+    // oficioId es opcional hasta que se implemente PerfilOficio (un trabajador puede tener múltiples oficios)
+    @Column(name = "oficio_id")
     private Long oficioId;
 
-    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private EstadoSolicitud estado = EstadoSolicitud.PENDIENTE;
 
-    /** Descripción del trabajo solicitado por el cliente */
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
-    /** Ubicación del cliente al momento de crear la solicitud, para que el trabajador sepa dónde ir */
+    @Column(name = "fecha_hora_preferida")
+    private LocalDateTime fechaHoraPreferida;
+
+    @Column(name = "direccion", length = 300)
+    private String direccion;
+
     @Column(name = "cliente_latitud")
     private Double clienteLatitud;
 
     @Column(name = "cliente_longitud")
     private Double clienteLongitud;
 
-    /**Fecha de creación de la solicitud */
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    /**Fecha de actualización de la solicitud */
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @PrePersist //Se ejecuta antes de guardar la solicitud
+    @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now(); //Fecha de creación de la solicitud
-        updatedAt = LocalDateTime.now(); //Fecha de actualización de la solicitud
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
-    @PreUpdate //Se ejecuta antes de actualizar la solicitud
+    @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now(); //Fecha de actualización de la solicitud
+        updatedAt = LocalDateTime.now();
     }
 }
