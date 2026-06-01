@@ -45,9 +45,9 @@ function CategoryChip({ label, active, onPress }) {
 // ─── 3. COMPONENTE: TARJETA DE TRABAJADOR ────────────────────────────────────
 // Muestra los datos de un trabajador en una tarjeta
 
-function WorkerCard({ worker }) {
+function WorkerCard({ worker, onPress }) {
   return (
-    <View style={styles.card}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.card}>
 
       {/* Avatar circular con las iniciales del nombre */}
       <View style={[styles.avatar, { backgroundColor: worker.color }]}>
@@ -70,13 +70,13 @@ function WorkerCard({ worker }) {
         <Text style={styles.precio}>${worker.precio}</Text>
       </View>
 
-    </View>
+    </TouchableOpacity>
   );
 }
 
 // ─── 4. PANTALLA PRINCIPAL ───────────────────────────────────────────────────
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const [categoriaActiva, setCategoriaActiva] = useState('Todos');
   const [busqueda, setBusqueda] = useState('');
 
@@ -138,7 +138,13 @@ export default function HomeScreen() {
 
           {trabajadoresFiltrados.length === 0
             ? <Text style={styles.sinResultados}>Sin resultados para "{busqueda}"</Text>
-            : trabajadoresFiltrados.map(w => <WorkerCard key={w.id} worker={w} />)
+            : trabajadoresFiltrados.map(w => (
+                <WorkerCard
+                  key={w.id}
+                  worker={w}
+                  onPress={() => navigation.navigate('PerfilTecnico', { worker: w })}
+                />
+              ))
           }
         </View>
 
