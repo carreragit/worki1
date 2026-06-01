@@ -22,6 +22,8 @@ import com.worki.auth.repositories.UsuarioRepository;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +42,7 @@ public class AuthService {
     @Autowired private EmailService emailService;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private RestTemplate restTemplate;
+    @Autowired private Environment environment;
 
     @Value("${user-service.url}")
     private String userServiceUrl;
@@ -59,6 +62,10 @@ public class AuthService {
         usuario.setPassword(passwordEncoder.encode(request.getPassword()));
         // código único que este usuario puede compartir para referir a otros
         usuario.setCodigoReferidoPropio(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        // en perfil test el email queda verificado automáticamente para facilitar los tests E2E
+        if (environment.acceptsProfiles(Profiles.of("test"))) {
+            usuario.setEmailVerificado(true);
+        }
         usuarioRepository.save(usuario);
 
         // crea el perfil básico en user-service con el nombre del registro
