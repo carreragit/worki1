@@ -15,6 +15,16 @@ public class PerfilService {
     private final PerfilRepository perfilRepository;
     private final PerfilMapper perfilMapper;
 
+    // Llamado internamente por auth-service al registrar un usuario nuevo
+    public void crearPerfilBasico(Long usuarioId, String nombreCompleto) {
+        if (perfilRepository.existsByUsuarioId(usuarioId)) return;
+        Perfil perfil = Perfil.builder()
+                .usuarioId(usuarioId)
+                .nombreCompleto(nombreCompleto)
+                .build();
+        perfilRepository.save(perfil);
+    }
+
     // Crear un perfil (solo si el usuario no tiene ya uno)
     public PerfilResponseDTO crearPerfil(PerfilRequestDTO dto) {
         if (perfilRepository.existsByUsuarioId(dto.getUsuarioId())) {

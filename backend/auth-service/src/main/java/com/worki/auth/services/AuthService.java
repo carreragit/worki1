@@ -19,10 +19,13 @@ import com.worki.auth.models.enums.TipoToken;
 import com.worki.auth.repositories.ReferidoRepository;
 import com.worki.auth.repositories.TokenEmailRepository;
 import com.worki.auth.repositories.UsuarioRepository;
+import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -36,6 +39,10 @@ public class AuthService {
     @Autowired private JwtService jwtService;
     @Autowired private EmailService emailService;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private RestTemplate restTemplate;
+
+    @Value("${user-service.url}")
+    private String userServiceUrl;
 
     // @Transactional: si algo falla en el medio, revierte todos los cambios en la BD
     @Transactional
@@ -53,6 +60,9 @@ public class AuthService {
         // código único que este usuario puede compartir para referir a otros
         usuario.setCodigoReferidoPropio(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         usuarioRepository.save(usuario);
+
+        // crea el perfil básico en user-service con el nombre del registro
+        crearPerfilEnUserService(usuario.getId(), usuario.getNombre());
 
         // si vino un código de referido, busca al referidor y registra la relación
         if (request.getCodigoReferido() != null && !request.getCodigoReferido().isBlank()) {
@@ -160,6 +170,20 @@ public class AuthService {
 
         usuarioRepository.save(usuario);
         tokenEmailRepository.save(tokenEmail);
+    }
+
+    // Llama a user-service para crear el perfil básico del usuario recién registrado
+    private void crearPerfilEnUserService(Long usuarioId, String nombre) {
+        CrearPerfilRequest body = new CrearPerfilRequest();
+        body.setUsuarioId(usuarioId);
+        body.setNombreCompleto(nombre);
+        restTemplate.postForObject(userServiceUrl + "/internal/perfiles", body, Void.class);
+    }
+
+    @Data
+    private static class CrearPerfilRequest {
+        private Long usuarioId;
+        private String nombreCompleto;
     }
 
     // mapeo de entidad Usuario hacia UsuarioResponse - sin exponer password ni campos internos
