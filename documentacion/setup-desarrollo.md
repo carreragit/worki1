@@ -137,3 +137,85 @@ El login devuelve el JWT. Para endpoints protegidos agregar el header:
 ```
 Authorization: Bearer EL_JWT_RECIBIDO
 ```
+
+---
+
+## 7. Levantar la app móvil (Expo)
+
+Desde la carpeta `mobile/`:
+
+```powershell
+# Solo la primera vez — instala todas las dependencias
+npm install
+
+# Levantar el servidor de desarrollo de Expo
+npm start
+```
+
+Expo abre una interfaz en el navegador con un QR. Para correr en dispositivo o emulador:
+
+```powershell
+npm run android   # emulador Android
+npm run ios       # simulador iOS (solo Mac)
+npm run web       # navegador
+```
+
+> La app móvil requiere los servicios del backend corriendo para funcionar correctamente.
+
+---
+
+## 8. Ejecutar los tests E2E
+
+Los tests E2E prueban el flujo completo del sistema haciendo requests HTTP reales contra los servicios corriendo. Reemplazan las pruebas manuales con Postman para los flujos principales.
+
+### Requisito previo
+
+Los 4 servicios deben estar corriendo en modo test (ver sección 4). Abrir una terminal por servicio desde `backend/`:
+
+```powershell
+# Terminal 1
+.\mvnw -pl gateway spring-boot:run
+
+# Terminal 2
+.\mvnw -pl auth-service spring-boot:run -Dspring-boot.run.profiles=local,test
+
+# Terminal 3
+.\mvnw -pl user-service spring-boot:run -Dspring-boot.run.profiles=local,test
+
+# Terminal 4
+.\mvnw -pl interaction-service spring-boot:run -Dspring-boot.run.profiles=local,test
+```
+
+Esperar a que los 4 digan `Started ... in X seconds` antes de correr los tests.
+
+> En modo test el registro deja el email verificado automáticamente, sin necesitar SMTP ni copiar links de la consola.
+
+### Ejecutar los tests
+
+Desde `backend/`, cada servicio tiene sus propios tests:
+
+```powershell
+# Tests de autenticación (registro, login, validaciones)
+.\mvnw -pl auth-service test
+
+# Tests de perfiles, trabajadores y oficios
+.\mvnw -pl user-service test
+
+# Tests de solicitudes y calificaciones
+.\mvnw -pl interaction-service test
+```
+
+Si los servicios no están corriendo, los tests se marcan como `SKIPPED` en lugar de `FAILED`.
+
+### Qué cubre cada test
+
+| Servicio | Tests | Qué prueba |
+|----------|-------|-----------|
+| auth-service | 5 | Registro, login con JWT, email duplicado (409), password incorrecta (401), password débil (400) |
+| user-service | 12 | CRUD de perfiles, registro de trabajadores, creación y búsqueda de oficios |
+| interaction-service | 15 | Crear solicitud, aceptar, completar, calificar, listar por cliente/trabajador, promedios |
+
+### Cuándo correrlos
+
+- Antes de mergear a `testing` para validar que nada se rompió
+- Después de cambios en controllers, services o configuración de rutas
