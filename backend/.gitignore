@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 
+### Imágenes subidas en el chat (generadas en runtime, no son código) ###
+interaction-service/uploads/
+

@@ -44,6 +44,12 @@
             <artifactId>httpclient5</artifactId>
         </dependency>
 
+        <!-- WebSocket + STOMP: habilita chat en tiempo real entre cliente y trabajador -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
