@@ -54,4 +54,11 @@ public class TrabajadorService {
         }
         trabajadorRepository.deleteById(id);
     }
+
+    // Obtener trabajador por perfilId
+    public TrabajadorResponseDTO obtenerPorPerfilId(Long perfilId) {
+        Trabajador t = trabajadorRepository.findByPerfilId(perfilId)
+                .orElseThrow(() -> new RuntimeException("No existe trabajador para perfilId: " + perfilId));
+        return trabajadorMapper.toDTO(t);
+    }
 }
