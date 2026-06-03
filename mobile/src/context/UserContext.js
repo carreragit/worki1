@@ -1,27 +1,34 @@
 /**
- * UserContext — estado global del usuario autenticado.
+ * UserContext - estado global del usuario autenticado.
  *
- * Guarda los datos que casi todas las pantallas necesitan:
- *   - userId       → id del usuario en auth-service (viene del JWT)
- *   - perfilId     → id del perfil en user-service
- *   - nombreCompleto → para mostrarlo en la UI sin hacer otra petición
- *   - esTrabajador → true si el usuario ya activó su perfil de trabajador
- *   - trabajadorId → id del trabajador (null si no es trabajador)
+ * Guardamos aquí los datos que casi todas las pantallas necesitan
+ * para no tener que ir al backend en cada pantalla a buscarlos:
+ *   - userId          id del usuario en auth-service (viene del JWT)
+ *   - perfilId      id del perfil en user-service
+ *   - nombreCompleto  para mostrarlo en la UI sin hacer otra petición
+ *   - esTrabajador   true si el usuario ya activó su perfil de trabajador
+ *   - trabajadorId    id del trabajador (null si no es trabajador)
  *
- * Uso:
+ * Uso desde cualquier pantalla:
  *   const { user, initUser, clearUser } = useUser();
  *
- *   - Llamar initUser() justo después de hacer login exitoso.
- *   - Llamar clearUser() al cerrar sesión para limpiar el estado.
+ *   - initUser()   llamar justo después de un login exitoso
+ *   - clearUser() llamar al cerrar sesión para limpiar el estado
  */
 import { createContext, useContext, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { getToken } from '../services/authService';
 import { obtenerPerfil, verificarTrabajador } from '../services/userService';
 
+// createContext es una función nativa de React que crea el canal de comunicación
+// entre el Provider y todas las pantallas que consuman el contexto.
+// El null es el valor inicial-  solo aplica si useUser() se llama
+// fuera del Provider, lo cual sería un error de uso.
 const UserContext = createContext(null);
 
-// Estado vacío que se usa al iniciar la app o al cerrar sesión
+// Definimos EMPTY_USER fuera de la función porque tanto UserProvider como clearUser
+// lo necesitan. Al vivir fuera, se crea una sola vez al importar el archivo.
+// Representa el estado vacío del usuario: antes del login o después del logout.
 const EMPTY_USER = {
   userId: null,
   perfilId: null,
@@ -30,44 +37,64 @@ const EMPTY_USER = {
   trabajadorId: null,
 };
 
+// Exportamos UserProvider para que App.js pueda importarlo y envolver toda la app.
+// El parámetro { children } le permite renderizar todo lo que se anide adentro —
+// sin él, la app entera desaparecería de pantalla.
 export function UserProvider({ children }) {
+
+  // useState es un hook nativo de React que crea el estado del usuario.
+  // Retorna un array con dos valores: el valor actual del estado y la función para actualizarlo.
+  // Los destructuramos directamente en dos constantes: user (valor actual) y setUser (actualizador).
+  // Cuando setUser se llama, React redibuja automáticamente todas las pantallas
+  // que estén usando ese estado — algo que una variable normal no puede hacer.
   const [user, setUser] = useState(EMPTY_USER);
 
-  /**
-   * Carga los datos del usuario autenticado.
-   * Se llama una vez después de un login exitoso.
-   *
-   * Pasos:
-   *  1. Lee el JWT guardado en el dispositivo
-   *  2. Decodifica el token para obtener el userId (campo 'sub' del JWT)
-   *  3. Pide el perfil al user-service usando ese userId
-   *  4. Verifica si el perfil ya tiene un trabajador asociado
-   */
+  // initUser es una función asíncrona guardada en una constante.
+  // Dentro de un componente React se usa const en vez de function por convención,
+  // pero ambas formas son equivalentes y funcionan exactamente igual.
+  // El async habilita el uso de await adentro y hace que la función retorne
+  // una Promesa, permitiendo que quien la llame también pueda esperarla con await.
   const initUser = async () => {
+
+    // await pausa la ejecución en esta línea hasta que getToken() termine.
+    // Sin await, token sería una Promesa sin resolver, no el valor del JWT.
     const token = await getToken();
+
+    // jwtDecode convierte el JWT (string cifrado) en un objeto JavaScript legible.
     const decoded = jwtDecode(token);
 
-    // El campo 'sub' del JWT es un string con el id numérico del usuario en auth-service
+    // El campo 'sub' del JWT contiene el id del usuario como string.
+    // Lo convertimos a número porque el backend lo espera así.
     const userId = Number(decoded.sub);
 
+    // Vamos al backend a buscar el perfil usando el userId extraído del JWT.
     const perfil = await obtenerPerfil(userId);
 
-    // verificarTrabajador devuelve null si el usuario no es trabajador (no lanza error)
+    // verificarTrabajador retorna null si el usuario no tiene perfil de trabajador.
     const trabajador = await verificarTrabajador(perfil.id);
 
+    // setUser actualiza el estado con los datos reales del usuario logueado.
+    // React redibuja todas las pantallas que consuman este contexto.
     setUser({
       userId,
       perfilId: perfil.id,
       nombreCompleto: perfil.nombreCompleto,
       // Si trabajador no es null, el usuario tiene perfil de trabajador activo
       esTrabajador: trabajador !== null,
+      // El operador ?. accede a id solo si trabajador no es null
+      // El operador ?? retorna null si el resultado es undefined
       trabajadorId: trabajador?.id ?? null,
     });
   };
 
-  // Limpia el estado del usuario — usar al cerrar sesión
+  // clearUser resetea el estado del usuario a vacío.
+  // Se llama desde PerfilScreen al cerrar sesión.
   const clearUser = () => setUser(EMPTY_USER);
 
+  // El return renderiza el Provider con el canal lleno de datos.
+  // value define qué funciones y valores quedan expuestos hacia afuera —
+  // solo lo que esté aquí puede ser consumido por las pantallas con useUser().
+  // {children} renderiza todo lo anidado dentro de <UserProvider> en App.js.
   return (
     <UserContext.Provider value={{ user, setUser, initUser, clearUser }}>
       {children}
@@ -75,7 +102,10 @@ export function UserProvider({ children }) {
   );
 }
 
-// Hook para acceder al contexto desde cualquier pantalla
+// useUser es un custom hook — una función propia que usa hooks nativos de React adentro.
+// Actúa como wrapper de useContext para que las pantallas no tengan que
+// importar UserContext directamente ni saber cómo funciona el contexto por dentro.
+// Al empezar con 'use', React la reconoce como hook y permite usarla dentro de componentes.
 export function useUser() {
   return useContext(UserContext);
 }
