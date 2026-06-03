@@ -104,7 +104,7 @@ export function UserProvider({ children }) {
 
 // useUser es un custom hook - una función propia que usa hooks nativos de React adentro.
 // Actúa como wrapper de useContext para que las pantallas no tengan que
-// importar UserContext directamente ni saber cómo funciona el contexto por dentro.
+// importar UserContext directamente ni saber cómo funciona el contexto por dentro..
 // Al empezar con 'use', React la reconoce como hook y permite usarla dentro de componentes.
 export function useUser() {
   return useContext(UserContext);
