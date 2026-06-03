@@ -38,7 +38,7 @@ const EMPTY_USER = {
 };
 
 // Exportamos UserProvider para que App.js pueda importarlo y envolver toda la app.
-// El parámetro { children } le permite renderizar todo lo que se anide adentro —
+// El parámetro { children } le permite renderizar todo lo que se anide adentro -
 // sin él, la app entera desaparecería de pantalla.
 export function UserProvider({ children }) {
 
@@ -46,7 +46,7 @@ export function UserProvider({ children }) {
   // Retorna un array con dos valores: el valor actual del estado y la función para actualizarlo.
   // Los destructuramos directamente en dos constantes: user (valor actual) y setUser (actualizador).
   // Cuando setUser se llama, React redibuja automáticamente todas las pantallas
-  // que estén usando ese estado — algo que una variable normal no puede hacer.
+  // que estén usando ese estado - algo que una variable normal no puede hacer.
   const [user, setUser] = useState(EMPTY_USER);
 
   // initUser es una función asíncrona guardada en una constante.
@@ -92,7 +92,7 @@ export function UserProvider({ children }) {
   const clearUser = () => setUser(EMPTY_USER);
 
   // El return renderiza el Provider con el canal lleno de datos.
-  // value define qué funciones y valores quedan expuestos hacia afuera —
+  // value define qué funciones y valores quedan expuestos hacia afuera -
   // solo lo que esté aquí puede ser consumido por las pantallas con useUser().
   // {children} renderiza todo lo anidado dentro de <UserProvider> en App.js.
   return (
@@ -102,7 +102,7 @@ export function UserProvider({ children }) {
   );
 }
 
-// useUser es un custom hook — una función propia que usa hooks nativos de React adentro.
+// useUser es un custom hook - una función propia que usa hooks nativos de React adentro.
 // Actúa como wrapper de useContext para que las pantallas no tengan que
 // importar UserContext directamente ni saber cómo funciona el contexto por dentro.
 // Al empezar con 'use', React la reconoce como hook y permite usarla dentro de componentes.
