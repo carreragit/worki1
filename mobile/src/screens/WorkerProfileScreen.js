@@ -14,39 +14,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADII, SHADOWS } from '../theme';
+import { API_BASE_URL } from '../services/config';
 
 const HEADER_COLOR = '#41836c'; // Color base del gradiente de Worki
 
-export default function WorkerProfileScreen({ navigation }) {
-  // ── MOCK DATA DEL TRABAJADOR (RESPALDO OFFLINE) ──
-  const workerMock = {
-    id: 'worker_123',
-    nombre: 'Héctor Silva',
-    oficio: 'Gasfíter',
-    rating: '4.8',
-    reseñasCount: 67,
-    experiencia: '5 años',
-    precioBase: '25.000',
-    comuna: 'Providencia',
-    radioCobertura: '8 km',
-    avatarColor: '#16A34A',
-    iniciales: 'HS',
-    descripcion: 'Técnico certificado con más de 5 años realizando servicios de instalación y reparación de redes de agua caliente y fría, calefonts, mantención de griferías, fugas y emergencias las 24 horas. Garantía por escrito en todos mis trabajos.',
-    especialidades: [
-      'Cañerías PPR y Cobre',
-      'Instalación de Calefont',
-      'Filtraciones e Infiltraciones',
-      'Reparación de Griferías',
-      'Emergencias 24/7',
-      'Destapes Sanitarios'
-    ],
-    reseñas: [
-      { id: 1, nombre: 'Sofía Valenzuela', rating: 5, fecha: 'Hace 2 días', comentario: 'Excelente servicio. Héctor llegó muy rápido para solucionar una filtración de agua en mi cocina. Muy profesional y limpio.' },
-      { id: 2, nombre: 'Mariano Tapia', rating: 4, fecha: 'Hace 1 semana', comentario: 'Instaló un calefont nuevo. Explicó todo el funcionamiento y dejó todo certificado. Muy recomendado.' },
-      { id: 3, nombre: 'Clara Soto', rating: 5, fecha: 'Hace 2 semanas', comentario: 'Rápido, ordenado y cobró lo justo. Sin duda lo volveré a contactar.' }
-    ]
-  };
-
+export default function WorkerProfileScreen({ route, navigation }) {
   // ── ESTADOS PARA LA INTEGRACIÓN CON BACKEND (API GATEWAY) ──
   const [workerData, setWorkerData] = useState(null);
   const [isFetchingProfile, setIsFetchingProfile] = useState(true);
@@ -61,55 +33,186 @@ export default function WorkerProfileScreen({ navigation }) {
   const [solicitudPendiente, setSolicitudPendiente] = useState(false);
   const [chatHabilitado, setChatHabilitado] = useState(false);
 
-  // ── CONSUMO DEL API GATEWAY (MÓDULO USER-SERVICE) ──
+  // ── CONSUMO DEL API GATEWAY (MÓDULO USER-SERVICE Y INTERACTION-SERVICE) ──
   useEffect(() => {
-    // TIP EXPERTO: En emuladores de Android, 'localhost' apunta al propio emulador.
-    // Si estás testeando en un dispositivo físico o emulador Android, puedes cambiar 
-    // 'localhost' por la IP de tu PC o por '10.0.2.2' para mapear el localhost de tu PC.
-    const GATEWAY_URL = 'http://localhost:8080/api/perfiles/2'; 
+    const oficioId = route?.params?.oficioId || route?.params?.id || route?.params?.worker?.id || 1;
+    const clienteId = 1; // ID del cliente por defecto
     
-    fetch(GATEWAY_URL, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer token_de_prueba_temporal'
-      }
-    })
+    setIsFetchingProfile(true);
+    setErrorFetch(false);
+
+    // 1. Obtener los detalles del oficio usando la URL centralizada
+    fetch(`${API_BASE_URL}/oficios/${oficioId}`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP Error Status: ${response.status}`);
         }
         return response.json();
       })
-      .then(data => {
-        setWorkerData(data);
-        setIsFetchingProfile(false);
+      .then(async (oficioData) => {
+        try {
+          // 2. Obtener los detalles del trabajador
+          let trabajadorData = {};
+          if (oficioData.trabajadorId) {
+            const trabajadorRes = await fetch(`${API_BASE_URL}/trabajadores/${oficioData.trabajadorId}`);
+            if (trabajadorRes.ok) {
+              trabajadorData = await trabajadorRes.json();
+            }
+          }
+
+          // 3. Obtener el perfil asociado
+          const perfilId = trabajadorData.perfilId || oficioData.trabajadorId || 2;
+          let perfilData = {};
+          const perfilRes = await fetch(`${API_BASE_URL}/perfiles/${perfilId}`);
+          if (perfilRes.ok) {
+            perfilData = await perfilRes.json();
+          }
+
+          // Fusionar información
+          const merged = {
+            ...oficioData,
+            ...trabajadorData,
+            ...perfilData,
+            comuna: perfilData.ciudad || perfilData.comuna || 'Providencia',
+            disponibilidadInmediata: trabajadorData.disponibilidadInmediata ?? false,
+          };
+
+          // 4. Obtener calificaciones (opiniones) del trabajador
+          let reviews = [];
+          try {
+            const calRes = await fetch(`${API_BASE_URL}/interacciones/calificaciones/usuario/${perfilId}`);
+            if (calRes.ok) {
+              const calList = await calRes.json();
+              reviews = await Promise.all(
+                calList.map(async (cal) => {
+                  let evaluatorName = 'Cliente Anónimo';
+                  try {
+                    const evalRes = await fetch(`${API_BASE_URL}/perfiles/${cal.evaluadorId}`);
+                    if (evalRes.ok) {
+                      const evalProfile = await evalRes.json();
+                      evaluatorName = evalProfile.nombreCompleto || evaluatorName;
+                    }
+                  } catch (e) {
+                    console.warn('Error fetching evaluator profile:', e);
+                  }
+
+                  let fechaStr = 'Reciente';
+                  if (cal.createdAt) {
+                    const d = new Date(cal.createdAt);
+                    fechaStr = d.toLocaleDateString('es-CL', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    });
+                  }
+
+                  return {
+                    id: cal.id,
+                    nombre: evaluatorName,
+                    rating: cal.puntaje || 5,
+                    fecha: fechaStr,
+                    comentario: cal.comentario || ''
+                  };
+                })
+              );
+            }
+          } catch (calErr) {
+            console.warn('Error al obtener calificaciones:', calErr);
+          }
+
+          merged.reseñas = reviews;
+          setWorkerData(merged);
+
+          // 5. Verificar si hay solicitudes pendientes o activas
+          try {
+            const solsRes = await fetch(`${API_BASE_URL}/interacciones/solicitudes/cliente/${clienteId}`);
+            if (solsRes.ok) {
+              const sols = await solsRes.json();
+              const tienePendiente = sols.some(sol => 
+                (sol.oficioId === oficioId || sol.trabajadorId === oficioData.trabajadorId) &&
+                (sol.estado === 'PENDIENTE')
+              );
+              setSolicitudPendiente(tienePendiente);
+              
+              const tieneChat = sols.some(sol => 
+                (sol.oficioId === oficioId || sol.trabajadorId === oficioData.trabajadorId) &&
+                (sol.estado === 'ACEPTADA' || sol.estado === 'COMPLETADA')
+              );
+              setChatHabilitado(tieneChat);
+            }
+          } catch (solsErr) {
+            console.warn('Error al verificar solicitudes previas:', solsErr);
+          }
+
+        } catch (innerErr) {
+          console.error('Error al resolver recursos secundarios:', innerErr);
+          setErrorFetch(true);
+        } finally {
+          setIsFetchingProfile(false);
+        }
       })
       .catch(error => {
-        console.warn('Conexión con Gateway fallida. Activando Plan B (Mock):', error);
+        console.error('Conexión con Gateway fallida:', error);
         setErrorFetch(true);
         setIsFetchingProfile(false);
       });
-  }, []);
+  }, [route?.params?.oficioId, route?.params?.id, route?.params?.worker?.id]);
 
   // ── MAPEADO DINÁMICO DE CAMPOS ──
-  const nombre = workerData?.nombreCompleto || workerMock.nombre;
-  const descripcion = workerData?.descripcion || workerMock.descripcion;
-  const comuna = workerData?.ciudad || workerMock.comuna;
-  const iniciales = workerData 
-    ? workerData.nombreCompleto.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() 
-    : workerMock.iniciales;
+  const nombre = workerData?.nombreCompleto || workerData?.nombre || 'Profesional';
+  const descripcion = workerData?.descripcionServicio || workerData?.descripcion || 'Sin descripción disponible.';
+  const comuna = workerData?.comuna || workerData?.ciudad || 'No especificada';
+  const iniciales = nombre
+    ? nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'TR';
+
+  const especialidades = workerData?.especialidades || 
+    (workerData?.especialidad ? [workerData.especialidad] : ['Servicios Generales']);
 
   const handleSolicitarServicio = () => {
     if (solicitudPendiente || loading) return;
     
     setLoading(true);
     
-    setTimeout(() => {
-      setLoading(false);
-      setSolicitudPendiente(true);
-      setChatHabilitado(true);
-    }, 1000);
+    const clienteId = 1; // default cliente autenticado
+    const POST_SOLICITUD_URL = `${API_BASE_URL}/interacciones/solicitudes`;
+
+    const requestBody = {
+      trabajadorId: workerData?.trabajadorId || 1,
+      oficioId: workerData?.id || 1,
+      descripcion: `Solicitud de servicio de ${workerData?.especialidad || 'profesional'} desde app móvil.`,
+      fechaHoraPreferida: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('.')[0], // Mañana a esta hora
+      direccion: 'Dirección del cliente registrado',
+      clienteLatitud: -33.4372,
+      clienteLongitud: -70.6506
+    };
+
+    fetch(POST_SOLICITUD_URL, {
+      method: 'POST',
+      headers: {
+        'X-User-Id': clienteId.toString(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    })
+      .then(response => {
+        if (!response.ok) {
+          return response.text().then(text => {
+            throw new Error(text || 'Error al enviar solicitud');
+          });
+        }
+        return response.json();
+      })
+      .then(() => {
+        setLoading(false);
+        setSolicitudPendiente(true);
+        Alert.alert('Éxito', 'Tu solicitud de servicio ha sido enviada con éxito. Espera a que el técnico la acepte.');
+      })
+      .catch(error => {
+        console.error('Error al enviar solicitud:', error);
+        Alert.alert('Error', error.message || 'No se pudo enviar la solicitud.');
+        setLoading(false);
+      });
   };
 
   const handleAbrirChat = () => {
@@ -130,12 +233,11 @@ export default function WorkerProfileScreen({ navigation }) {
     setChatHabilitado(false);
   };
 
+  // Estado de Carga: Muestra exclusivamente un ActivityIndicator nativo centrado.
   if (isFetchingProfile) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Cargando perfil del profesional...</Text>
-        <Text style={styles.loadingSubtext}>Conectando con el API Gateway...</Text>
       </View>
     );
   }
@@ -147,11 +249,10 @@ export default function WorkerProfileScreen({ navigation }) {
       {/* ── CONTENEDOR RESPONSIVO DE ANCHO MÁXIMO PARA REACT NATIVE WEB ── */}
       <View style={styles.contenedorWebWeb}>
       
-        {/* ── BANNER AMARILLO DE MODO OFFLINE (PLAN B) ── */}
         {errorFetch && (
           <View style={styles.offlineBanner}>
             <Ionicons name="warning-outline" size={16} color="#FFFFFF" />
-            <Text style={styles.offlineBannerTexto}>Modo Offline: Mostrando datos de prueba</Text>
+            <Text style={styles.offlineBannerTexto}>Error de Conexión: No se pudieron cargar los datos reales</Text>
           </View>
         )}
 
@@ -179,7 +280,7 @@ export default function WorkerProfileScreen({ navigation }) {
 
           {/* ── CARD DE PERFIL DENTRO DEL HEADER ── */}
           <View style={styles.perfilInfoBox}>
-            <View style={[styles.avatar, { backgroundColor: workerMock.avatarColor }]}>
+            <View style={[styles.avatar, { backgroundColor: workerData?.avatarColor || '#41836c' }]}>
               <Text style={styles.avatarTexto}>{iniciales}</Text>
             </View>
 
@@ -188,22 +289,30 @@ export default function WorkerProfileScreen({ navigation }) {
               <Text style={styles.badgeVerificadoTexto}>Identidad Verificada</Text>
             </View>
 
+            {/* Mostrar badge de Disponibilidad Inmediata si corresponde */}
+            {workerData?.disponibilidadInmediata && (
+              <View style={[styles.badgeVerificado, { backgroundColor: '#DCFCE7', borderColor: '#BBF7D0', borderWidth: 1, marginTop: 8 }]}>
+                <Ionicons name="flash" size={12} color="#16A34A" />
+                <Text style={[styles.badgeVerificadoTexto, { color: '#16A34A' }]}>Disponible Ahora</Text>
+              </View>
+            )}
+
             <Text style={styles.nombreCompleto}>{nombre}</Text>
-            <Text style={styles.oficioTexto}>{workerMock.oficio} Certificado</Text>
+            <Text style={styles.oficioTexto}>{workerData?.especialidad || workerData?.oficio || 'Profesional'} Certificado</Text>
 
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
-                <Text style={styles.statValor}>★ {workerMock.rating}</Text>
+                <Text style={styles.statValor}>★ {workerData?.promedioCalificacion || workerData?.rating || '0.0'}</Text>
                 <Text style={styles.statLabel}>Rating</Text>
               </View>
               <View style={styles.statSeparador} />
               <View style={styles.statBox}>
-                <Text style={styles.statValor}>{workerMock.reseñasCount}</Text>
+                <Text style={styles.statValor}>{workerData?.totalCalificaciones || workerData?.reseñasCount || 0}</Text>
                 <Text style={styles.statLabel}>Reseñas</Text>
               </View>
               <View style={styles.statSeparador} />
               <View style={styles.statBox}>
-                <Text style={styles.statValor}>{workerMock.experiencia}</Text>
+                <Text style={styles.statValor}>{workerData?.experiencia || 'N/A'}</Text>
                 <Text style={styles.statLabel}>Exp.</Text>
               </View>
             </View>
@@ -211,7 +320,7 @@ export default function WorkerProfileScreen({ navigation }) {
             <View style={styles.ubicacionRow}>
               <Ionicons name="location-sharp" size={14} color="#FFFFFF" />
               <Text style={styles.ubicacionTexto}>
-                {comuna} · Cobertura {workerMock.radioCobertura}
+                {comuna} {workerData?.radioKm ? `· Cobertura ${workerData.radioKm} km` : ''}
               </Text>
             </View>
           </View>
@@ -244,7 +353,7 @@ export default function WorkerProfileScreen({ navigation }) {
 
               <Text style={[styles.seccionTitulo, { marginTop: 24 }]}>ESPECIALIDADES</Text>
               <View style={styles.chipsRow}>
-                {workerMock.especialidades.map((esp, i) => (
+                {especialidades.map((esp, i) => (
                   <View key={i} style={styles.chip}>
                     <Text style={styles.chipTexto}>{esp}</Text>
                   </View>
@@ -256,23 +365,29 @@ export default function WorkerProfileScreen({ navigation }) {
           {tabActivo === 'Reseñas' && (
             <View style={styles.seccion}>
               <Text style={styles.seccionTitulo}>OPINIONES DE CLIENTES</Text>
-              {workerMock.reseñas.map((res) => (
-                <View key={res.id} style={styles.resenaCard}>
-                  <View style={styles.resenaHeader}>
-                    <Text style={styles.resenaNombre}>{res.nombre}</Text>
-                    <Text style={styles.resenaFecha}>{res.fecha}</Text>
+              {workerData?.reseñas && workerData.reseñas.length > 0 ? (
+                workerData.reseñas.map((res) => (
+                  <View key={res.id} style={styles.resenaCard}>
+                    <View style={styles.resenaHeader}>
+                      <Text style={styles.resenaNombre}>{res.nombre}</Text>
+                      <Text style={styles.resenaFecha}>{res.fecha}</Text>
+                    </View>
+                    <Text style={styles.resenaEstrellas}>{'★'.repeat(res.rating)}</Text>
+                    <Text style={styles.resenaComentario}>{res.comentario}</Text>
                   </View>
-                  <Text style={styles.resenaEstrellas}>{'★'.repeat(res.rating)}</Text>
-                  <Text style={styles.resenaComentario}>{res.comentario}</Text>
-                </View>
-              ))}
+                ))
+              ) : (
+                <Text style={{ color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 20 }}>
+                  Aún no hay opiniones para este profesional.
+                </Text>
+              )}
             </View>
           )}
 
           {tabActivo === 'Servicios' && (
             <View style={styles.seccion}>
               <Text style={styles.seccionTitulo}>SERVICIOS Y TARIFAS</Text>
-              {workerMock.especialidades.map((esp, i) => (
+              {especialidades.map((esp, i) => (
                 <View key={i} style={styles.servicioRow}>
                   <View style={styles.servicioInfo}>
                     <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />
@@ -284,20 +399,13 @@ export default function WorkerProfileScreen({ navigation }) {
 
               <View style={styles.tarifaBaseCard}>
                 <Text style={styles.tarifaBaseTitulo}>Visita y Presupuesto base desde</Text>
-                <Text style={styles.tarifaBaseMonto}>${workerMock.precioBase} CLP</Text>
+                <Text style={styles.tarifaBaseMonto}>
+                  ${workerData?.tarifaServicioBase || workerData?.precioBase || '0'} CLP
+                </Text>
               </View>
             </View>
           )}
 
-          {(solicitudPendiente || chatHabilitado) && (
-            <TouchableOpacity 
-              onPress={reiniciarSimulacion}
-              style={styles.qaBoton}
-            >
-              <Text style={styles.qaBotonTexto}>Resetear simulación de estados</Text>
-            </TouchableOpacity>
-          )}
-          
           <View style={{ height: 40 }} />
         </ScrollView>
 
@@ -381,19 +489,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20
   },
-  loadingText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: COLORS.textSecondary,
-    marginTop: 12
-  },
-  loadingSubtext: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginTop: 4
-  },
   offlineBanner: {
-    backgroundColor: '#D97706',
+    backgroundColor: '#DC2626',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -674,17 +771,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: COLORS.primary,
     marginTop: 4
-  },
-  qaBoton: {
-    marginTop: 16,
-    alignItems: 'center',
-    paddingVertical: 12
-  },
-  qaBotonTexto: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    textDecorationLine: 'underline',
-    fontWeight: '600'
   },
   footer: {
     position: 'absolute',

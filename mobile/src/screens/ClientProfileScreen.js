@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,69 +10,211 @@ import {
   StatusBar,
   Alert,
   Dimensions,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADII, SHADOWS } from '../theme';
+import { API_BASE_URL } from '../services/config';
 
 const HEADER_COLOR = '#41836c';
 
-export default function ClientProfileScreen({ navigation }) {
-  // ── MOCK DATA DEL CLIENTE ──
-  const [clientData, setClientData] = useState({
-    nombre: 'Benjamín',
-    apellido: 'Cortés',
-    correo: 'benjamin@worki.cl',
-    telefono: '+56 9 8765 4321',
-    fechaRegistro: '15 de Marzo, 2026',
-    comuna: 'Providencia, Santiago',
-    avatarColor: '#41836c',
-    iniciales: 'BC'
-  });
-
-  // ── MOCK DATA DE LAS SOLICITUDES ──
-  const [solicitudes, setSolicitudes] = useState([
-    {
-      id: 'sol_101',
-      trabajadorNombre: 'Héctor Silva',
-      oficio: 'Gasfíter',
-      fecha: 'Hoy · 14:30',
-      detalle: 'Reparación de calefont con filtración de agua.',
-      estado: 'Pendiente',
-      avatarColor: '#16A34A',
-      iniciales: 'HS'
-    },
-    {
-      id: 'sol_102',
-      trabajadorNombre: 'Marta Gómez',
-      oficio: 'Electricista',
-      fecha: '28 de Mayo, 2026',
-      detalle: 'Instalación de focos LED en terraza y reparación de enchufes.',
-      estado: 'Finalizada',
-      avatarColor: '#3B82F6',
-      iniciales: 'MG'
-    }
-  ]);
+export default function ClientProfileScreen({ route, navigation }) {
+  // ── ESTADOS DE LA INTEGRACIÓN CON BACKEND (API GATEWAY) ──
+  const [clientData, setClientData] = useState(null);
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [isFetching, setIsFetching] = useState(true);
 
   // ── ESTADOS DE EDICIÓN ──
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ ...clientData });
+  const [editForm, setEditForm] = useState({
+    nombre: '',
+    apellido: '',
+    correo: '',
+    telefono: '',
+    comuna: ''
+  });
+
+  // ── CONSUMO DEL API GATEWAY (MÓDULOS USER-SERVICE E INTERACTION-SERVICE) ──
+  useEffect(() => {
+    const clienteId = route?.params?.clienteId || route?.params?.id || 1;
+    const PROFILE_URL = `${API_BASE_URL}/perfiles/${clienteId}`;
+    const SOLICITUDES_URL = `${API_BASE_URL}/interacciones/solicitudes/cliente/${clienteId}`;
+
+    setIsFetching(true);
+
+    Promise.all([
+      fetch(PROFILE_URL).then(res => {
+        if (!res.ok) throw new Error('Error al obtener perfil');
+        return res.json();
+      }),
+      fetch(SOLICITUDES_URL).then(res => {
+        if (!res.ok) throw new Error('Error al obtener solicitudes');
+        return res.json();
+      })
+    ])
+      .then(async ([profile, sols]) => {
+        setClientData(profile);
+        
+        // Enriquecer solicitudes con el nombre del trabajador y su especialidad
+        const enrichedSols = await Promise.all(
+          sols.map(async (sol) => {
+            try {
+              // 1. Obtener detalles del oficio
+              let oficioInfo = { especialidad: 'Profesional' };
+              if (sol.oficioId) {
+                const oficioRes = await fetch(`${API_BASE_URL}/oficios/${sol.oficioId}`);
+                if (oficioRes.ok) {
+                  oficioInfo = await oficioRes.json();
+                }
+              }
+
+              // 2. Obtener detalles del trabajador (para buscar su perfilId)
+              let workerProfile = { nombreCompleto: `Trabajador #${sol.trabajadorId}` };
+              if (sol.trabajadorId) {
+                const workerRes = await fetch(`${API_BASE_URL}/trabajadores/${sol.trabajadorId}`);
+                if (workerRes.ok) {
+                  const workerData = await workerRes.json();
+                  if (workerData?.perfilId) {
+                    const perfilRes = await fetch(`${API_BASE_URL}/perfiles/${workerData.perfilId}`);
+                    if (perfilRes.ok) {
+                      workerProfile = await perfilRes.json();
+                    }
+                  }
+                }
+              }
+
+              // Dar formato a la fecha de creación
+              let fechaStr = 'Reciente';
+              if (sol.createdAt) {
+                const date = new Date(sol.createdAt);
+                fechaStr = date.toLocaleDateString('es-CL', {
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+              }
+
+              const nombreComp = workerProfile.nombreCompleto || '';
+              const iniciales = nombreComp
+                ? nombreComp.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                : 'TR';
+
+              return {
+                id: sol.id.toString(),
+                trabajadorNombre: nombreComp,
+                oficio: oficioInfo.especialidad || 'Profesional',
+                fecha: fechaStr,
+                detalle: sol.descripcion || 'Sin descripción',
+                estado: sol.estado ? (sol.estado.charAt(0) + sol.estado.slice(1).toLowerCase()) : 'Pendiente',
+                avatarColor: '#16A34A',
+                iniciales: iniciales
+              };
+            } catch (err) {
+              console.warn('Error al enriquecer solicitud:', err);
+              return {
+                id: sol.id.toString(),
+                trabajadorNombre: `Trabajador #${sol.trabajadorId}`,
+                oficio: 'Profesional',
+                fecha: 'Reciente',
+                detalle: sol.descripcion || 'Sin descripción',
+                estado: sol.estado ? (sol.estado.charAt(0) + sol.estado.slice(1).toLowerCase()) : 'Pendiente',
+                avatarColor: '#9CA3AF',
+                iniciales: 'TR'
+              };
+            }
+          })
+        );
+
+        setSolicitudes(enrichedSols);
+        setIsFetching(false);
+      })
+      .catch(error => {
+        console.error('Error al conectar con el servidor:', error);
+        Alert.alert('Error', 'No se pudo obtener la información de perfil.');
+        setIsFetching(false);
+      });
+  }, [route?.params?.clienteId, route?.params?.id]);
+
+  const handleEditPress = () => {
+    const names = clientData?.nombreCompleto?.split(' ') || [];
+    const nombre = names[0] || '';
+    const apellido = names.slice(1).join(' ') || '';
+    setEditForm({
+      nombre: nombre,
+      apellido: apellido,
+      correo: clientData?.correo || 'correo@worki.cl',
+      telefono: clientData?.telefono || '',
+      comuna: clientData?.comuna || clientData?.ciudad || ''
+    });
+    setIsEditing(true);
+  };
 
   // Guardar cambios del perfil
   const handleSaveProfile = () => {
-    if (!editForm.nombre.trim() || !editForm.apellido.trim() || !editForm.correo.trim() || !editForm.telefono.trim()) {
+    if (!editForm.nombre.trim() || !editForm.apellido.trim() || !editForm.telefono.trim()) {
       Alert.alert('Campos incompletos', 'Por favor rellena todos los datos del perfil.');
       return;
     }
-    
-    setClientData({
-      ...editForm,
-      iniciales: (editForm.nombre[0] || '') + (editForm.apellido[0] || '').toUpperCase()
-    });
-    setIsEditing(false);
-    
-    Alert.alert('Éxito', 'Tu perfil ha sido actualizado correctamente.');
+
+    const clienteId = route?.params?.clienteId || route?.params?.id || 1;
+    const PROFILE_UPDATE_URL = `${API_BASE_URL}/perfiles/${clienteId}`;
+
+    const nombreCompleto = `${editForm.nombre.trim()} ${editForm.apellido.trim()}`;
+
+    const requestBody = {
+      usuarioId: clientData?.usuarioId || clienteId,
+      nombreCompleto: nombreCompleto,
+      telefono: editForm.telefono.trim(),
+      ciudad: editForm.comuna.trim(), // Comuna mapeada a la columna ciudad
+      region: clientData?.region || 'Metropolitana',
+      descripcion: clientData?.descripcion || 'Cliente registrado activo para solicitud de servicios del hogar.',
+      fotoPerfil: clientData?.fotoPerfil || null,
+      fechaNacimiento: clientData?.fechaNacimiento || '1995-04-12'
+    };
+
+    setIsFetching(true);
+
+    fetch(PROFILE_UPDATE_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Error al actualizar perfil');
+        }
+        return response.json();
+      })
+      .then(updatedProfile => {
+        setClientData(updatedProfile);
+        setIsEditing(false);
+        setIsFetching(false);
+        Alert.alert('Éxito', 'Tu perfil ha sido actualizado correctamente.');
+      })
+      .catch(error => {
+        console.error('Error al guardar perfil:', error);
+        Alert.alert('Error', 'No se pudo guardar la información del perfil.');
+        setIsFetching(false);
+      });
   };
+
+  // Mapear iniciales del cliente
+  const iniciales = clientData?.nombreCompleto
+    ? clientData.nombreCompleto.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'CL';
+
+  // Mostrar exclusivamente ActivityIndicator nativo centrado durante la carga
+  if (isFetching) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.pantalla}>
@@ -84,27 +226,27 @@ export default function ClientProfileScreen({ navigation }) {
         {/* ── HEADER SUPERIOR CON GRADIENTE DEL TEMA ── */}
         <View style={styles.header}>
           <View style={styles.headerBar}>
-            <TouchableOpacity style={styles.headerBoton}>
-              <Ionicons name="menu-outline" size={24} color="#FFFFFF" />
+            <TouchableOpacity style={styles.headerBoton} onPress={() => navigation && navigation.goBack()}>
+              <Ionicons name="arrow-back-outline" size={24} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={styles.headerTitulo}>Mi Cuenta</Text>
-            <TouchableOpacity style={styles.headerBoton}>
+            <TouchableOpacity style={styles.headerBoton} onPress={() => Alert.alert('Sesión', 'Cerrando sesión...')}>
               <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
           {/* ── PRESENTACIÓN CLIENTE ── */}
-          <div style={styles.presentacionCliente}>
+          <View style={styles.presentacionCliente}>
             <View 
-              style={[styles.avatar, { backgroundColor: clientData.avatarColor }]}
+              style={[styles.avatar, { backgroundColor: clientData?.avatarColor || '#41836c' }]}
             >
-              <Text style={styles.avatarTexto}>{clientData.iniciales}</Text>
+              <Text style={styles.avatarTexto}>{iniciales}</Text>
             </View>
-            <Text style={styles.nombreCliente}>{clientData.nombre} {clientData.apellido}</Text>
+            <Text style={styles.nombreCliente}>{clientData?.nombreCompleto || ''}</Text>
             <View style={styles.badgeRol}>
               <Text style={styles.badgeRolTexto}>Cliente Worki</Text>
             </View>
-          </div>
+          </View>
         </View>
 
         {/* ── SECCIONES (SCROLLABLE) ── */}
@@ -122,10 +264,7 @@ export default function ClientProfileScreen({ navigation }) {
               
               {!isEditing && (
                 <TouchableOpacity 
-                  onClick={() => {
-                    setEditForm({ ...clientData });
-                    setIsEditing(true);
-                  }}
+                  onPress={handleEditPress}
                   style={styles.btnEditar}
                 >
                   <Text style={styles.btnEditarText}>Editar Perfil</Text>
@@ -157,13 +296,11 @@ export default function ClientProfileScreen({ navigation }) {
                   />
                 </View>
                 <View style={styles.formGroup}>
-                  <Text style={styles.inputLabel}>Correo Electrónico</Text>
+                  <Text style={styles.inputLabel}>Correo Electrónico (Solo Lectura)</Text>
                   <TextInput 
-                    style={styles.textInput}
+                    style={[styles.textInput, { backgroundColor: '#E5E7EB', color: '#6B7280' }]}
                     value={editForm.correo}
-                    onChangeText={(val) => setEditForm({ ...editForm, correo: val })}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
+                    editable={false}
                     placeholder="ejemplo@worki.cl"
                     placeholderTextColor={COLORS.textMuted}
                   />
@@ -179,16 +316,26 @@ export default function ClientProfileScreen({ navigation }) {
                     placeholderTextColor={COLORS.textMuted}
                   />
                 </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.inputLabel}>Comuna / Ciudad</Text>
+                  <TextInput 
+                    style={styles.textInput}
+                    value={editForm.comuna}
+                    onChangeText={(val) => setEditForm({ ...editForm, comuna: val })}
+                    placeholder="Providencia, Santiago"
+                    placeholderTextColor={COLORS.textMuted}
+                  />
+                </View>
                 
                 <View style={styles.formAcciones}>
                   <TouchableOpacity 
-                    onClick={handleSaveProfile}
+                    onPress={handleSaveProfile}
                     style={styles.btnGuardar}
                   >
                     <Text style={styles.btnGuardarText}>Guardar</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
-                    onClick={() => setIsEditing(false)}
+                    onPress={() => setIsEditing(false)}
                     style={styles.btnCancelar}
                   >
                     <Text style={styles.btnCancelarText}>Cancelar</Text>
@@ -200,19 +347,19 @@ export default function ClientProfileScreen({ navigation }) {
               <View style={styles.datosGrid}>
                 <View style={styles.datoItem}>
                   <Text style={styles.datoLabel}>Correo Electrónico</Text>
-                  <Text style={styles.datoValor}>{clientData.correo}</Text>
+                  <Text style={styles.datoValor}>{clientData?.correo || 'correo@worki.cl'}</Text>
                 </View>
                 <View style={styles.datoItem}>
                   <Text style={styles.datoLabel}>Teléfono de contacto</Text>
-                  <Text style={styles.datoValor}>{clientData.telefono}</Text>
+                  <Text style={styles.datoValor}>{clientData?.telefono || 'No registrado'}</Text>
                 </View>
                 <View style={styles.datoItem}>
                   <Text style={styles.datoLabel}>Ubicación principal</Text>
-                  <Text style={styles.datoValorSecundario}>{clientData.comuna}</Text>
+                  <Text style={styles.datoValorSecundario}>{clientData?.comuna || clientData?.ciudad || 'No registrada'}</Text>
                 </View>
                 <View style={styles.datoItem}>
                   <Text style={styles.datoLabel}>Miembro desde</Text>
-                  <Text style={styles.datoValorSecundario}>{clientData.fechaRegistro}</Text>
+                  <Text style={styles.datoValorSecundario}>15 de Marzo, 2026</Text>
                 </View>
               </View>
             )}
@@ -223,70 +370,76 @@ export default function ClientProfileScreen({ navigation }) {
             <Text style={styles.seccionTituloText}>Mis Solicitudes</Text>
 
             <View style={styles.solicitudesLista}>
-              {solicitudes.map((sol) => {
-                const isPendiente = sol.estado === 'Pendiente';
-                
-                return (
-                  <View key={sol.id} style={styles.solicitudCard}>
-                    {/* Encabezado solicitud */}
-                    <View style={styles.solicitudHeader}>
-                      <View style={styles.solicitudPerfilRow}>
-                        <View 
-                          style={[styles.solicitudAvatar, { backgroundColor: sol.avatarColor }]}
-                        >
-                          <Text style={styles.solicitudAvatarText}>{sol.iniciales}</Text>
+              {solicitudes && solicitudes.length > 0 ? (
+                solicitudes.map((sol) => {
+                  const isPendiente = sol.estado === 'Pendiente';
+                  
+                  return (
+                    <View key={sol.id} style={styles.solicitudCard}>
+                      {/* Encabezado solicitud */}
+                      <View style={styles.solicitudHeader}>
+                        <View style={styles.solicitudPerfilRow}>
+                          <View 
+                            style={[styles.solicitudAvatar, { backgroundColor: sol.avatarColor }]}
+                          >
+                            <Text style={styles.solicitudAvatarText}>{sol.iniciales}</Text>
+                          </View>
+                          <View>
+                            <Text style={styles.solicitudTrabajadorNombre}>{sol.trabajadorNombre}</Text>
+                            <Text style={styles.solicitudSubtext}>{sol.oficio} · {sol.fecha}</Text>
+                          </View>
                         </View>
-                        <View>
-                          <Text style={styles.solicitudTrabajadorNombre}>{sol.trabajadorNombre}</Text>
-                          <Text style={styles.solicitudSubtext}>{sol.oficio} · {sol.fecha}</Text>
-                        </View>
-                      </View>
-                      
-                      {/* Estado Badge */}
-                      <View style={[
-                        styles.estadoBadge,
-                        isPendiente ? styles.estadoBadgePendiente : styles.estadoBadgeFinalizada
-                      ]}>
-                        <Text style={[
-                          styles.estadoBadgeTexto,
-                          isPendiente ? styles.estadoBadgeTextoPendiente : styles.estadoBadgeTextoFinalizada
+                        
+                        {/* Estado Badge */}
+                        <View style={[
+                          styles.estadoBadge,
+                          isPendiente ? styles.estadoBadgePendiente : styles.estadoBadgeFinalizada
                         ]}>
-                          {sol.estado}
-                        </Text>
+                          <Text style={[
+                            styles.estadoBadgeTexto,
+                            isPendiente ? styles.estadoBadgeTextoPendiente : styles.estadoBadgeTextoFinalizada
+                          ]}>
+                            {sol.estado}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Descripción de servicio */}
+                      <View style={styles.solicitudCuerpoBox}>
+                        <Text style={styles.solicitudCuerpoLabel}>Descripción del servicio:</Text>
+                        <Text style={styles.solicitudCuerpoTexto}>{sol.detalle}</Text>
+                      </View>
+
+                      {/* Botones contextuales */}
+                      <View style={styles.solicitudAccionesRow}>
+                        {isPendiente ? (
+                          <>
+                            <TouchableOpacity style={styles.btnSecundarioNativo} onPress={() => Alert.alert('Cancelar', 'Cancelando solicitud...')}>
+                              <Text style={styles.btnSecundarioNativoText}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.btnPrimarioNativo} onPress={() => Alert.alert('Chat', 'Abriendo chat...')}>
+                              <Text style={styles.btnPrimarioNativoText}>Ver Chat</Text>
+                            </TouchableOpacity>
+                          </>
+                        ) : (
+                          <>
+                            <TouchableOpacity style={styles.btnSecundarioNativo} onPress={() => Alert.alert('Recibo', 'Cargando recibo...')}>
+                              <Text style={styles.btnSecundarioNativoText}>Ver Recibo</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.btnPrimarioNativoAlerta} onPress={() => Alert.alert('Calificar', 'Calificando servicio...')}>
+                              <Text style={styles.btnPrimarioNativoAlertaText}>Calificar</Text>
+                            </TouchableOpacity>
+                          </>
+                        )}
                       </View>
                     </View>
-
-                    {/* Descripción de servicio */}
-                    <View style={styles.solicitudCuerpoBox}>
-                      <Text style={styles.solicitudCuerpoLabel}>Descripción del servicio:</Text>
-                      <Text style={styles.solicitudCuerpoTexto}>{sol.detalle}</Text>
-                    </View>
-
-                    {/* Botones contextuales */}
-                    <View style={styles.solicitudAccionesRow}>
-                      {isPendiente ? (
-                        <>
-                          <TouchableOpacity style={styles.btnSecundarioNativo}>
-                            <Text style={styles.btnSecundarioNativoText}>Cancelar</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.btnPrimarioNativo}>
-                            <Text style={styles.btnPrimarioNativoText}>Ver Chat</Text>
-                          </TouchableOpacity>
-                        </>
-                      ) : (
-                        <>
-                          <TouchableOpacity style={styles.btnSecundarioNativo}>
-                            <Text style={styles.btnSecundarioNativoText}>Ver Recibo</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.btnPrimarioNativoAlerta}>
-                            <Text style={styles.btnPrimarioNativoAlertaText}>Calificar</Text>
-                          </TouchableOpacity>
-                        </>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <Text style={{ color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 20 }}>
+                  No tienes solicitudes de servicio registradas.
+                </Text>
+              )}
             </View>
           </View>
         </ScrollView>
@@ -311,6 +464,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: Platform.OS === 'web' ? 0.08 : 0,
     shadowRadius: 10
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20
   },
   header: {
     backgroundColor: HEADER_COLOR,
@@ -544,7 +704,7 @@ const styles = StyleSheet.create({
   solicitudHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'start'
+    alignItems: 'center'
   },
   solicitudPerfilRow: {
     flexDirection: 'row',
