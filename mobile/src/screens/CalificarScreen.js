@@ -13,8 +13,9 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, SafeAreaView, Alert, ActivityIndicator,
+  StyleSheet, Alert, ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { crearCalificacion } from '../services/calificacionService';
 import { useUser } from '../context/UserContext';

@@ -17,11 +17,11 @@
 import { useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, SafeAreaView, Alert, ActivityIndicator,
+  StyleSheet, Alert, ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { actualizarEstado } from '../services/solicitudService';
-import { useUser } from '../context/UserContext';
 import { COLORS, ESTADO_COLORS, RATING_COLORS } from '../theme';
 
 function FilaDato({ icono, label, valor }) {
@@ -40,7 +40,6 @@ function FilaDato({ icono, label, valor }) {
 export default function DetalleSolicitudScreen({ route, navigation }) {
   // solicitudInicial viene desde SolicitudesScreen; se copia al estado local para poder actualizarla
   const { solicitud: solicitudInicial, modoTrabajador } = route.params;
-  const { user } = useUser();
   const [solicitud, setSolicitud] = useState(solicitudInicial);
   const [cargando, setCargando]   = useState(false);
 

@@ -3,9 +3,7 @@
 import axios from 'axios';
 import { getToken } from './authService';
 
-const GATEWAY_URL = 'http://192.168.1.102:8080';
-// El WebSocket se conecta directamente al interaction-service sin pasar por el gateway
-const WS_BASE_URL = 'ws://192.168.1.102:8084';
+import { GATEWAY_URL, WS_URL } from './config';
 
 const authHeaders = async () => {
   const token = await getToken();
@@ -38,4 +36,4 @@ export const subirImagen = async (uri) => {
   return res.data.url; // URL de la imagen subida
 };
 
-export { WS_BASE_URL };
+export { WS_URL };

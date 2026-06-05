@@ -14,6 +14,7 @@ import DetalleSolicitudScreen   from './src/screens/DetalleSolicitudScreen';
 import CalificarScreen          from './src/screens/CalificarScreen';
 // Pantalla de chat en tiempo real entre cliente y trabajador (Task 1)
 import ChatScreen               from './src/screens/ChatScreen';
+import ClientProfileScreen      from './src/screens/ClientProfileScreen';
 
 const Stack = createStackNavigator();
 
@@ -34,6 +35,7 @@ export default function App() {
               <Stack.Screen name="Calificar"          component={CalificarScreen} />
               {/* Ruta de chat: accesible desde DetalleSolicitudScreen cuando estado === ACEPTADA (Task 1) */}
               <Stack.Screen name="Chat"               component={ChatScreen} />
+              <Stack.Screen name="PerfilCliente"      component={ClientProfileScreen} />
             </Stack.Navigator>
           </NavigationContainer>
         </UserProvider>

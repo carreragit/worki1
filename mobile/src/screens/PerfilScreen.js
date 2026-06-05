@@ -10,7 +10,8 @@
  * También contiene el botón de cerrar sesión, que borra el token local y
  * limpia el contexto de usuario antes de redirigir al Login.
  */
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../context/UserContext';
 import { logout } from '../services/authService';

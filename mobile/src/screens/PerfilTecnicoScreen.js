@@ -21,15 +21,16 @@ import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, SafeAreaView, StatusBar, ActivityIndicator,
+  StyleSheet, StatusBar, ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { getToken } from '../services/authService';
 import { listarPorTrabajador } from '../services/calificacionService';
 import { COLORS, AVATAR_COLORS } from '../theme';
 
-const GATEWAY_URL = 'http://192.168.1.102:8080';
+import { GATEWAY_URL } from '../services/config';
 const TABS = ['Información', 'Servicios', 'Reseñas'];
 
 export default function PerfilTecnicoScreen({ route, navigation }) {

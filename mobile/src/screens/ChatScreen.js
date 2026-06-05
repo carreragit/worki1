@@ -18,19 +18,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform,
+  StyleSheet, KeyboardAvoidingView, Platform,
   ActivityIndicator, Image, Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Client } from '@stomp/stompjs';
-import { cargarHistorial, subirImagen, WS_BASE_URL } from '../services/mensajeService';
+import { cargarHistorial, subirImagen, WS_URL } from '../services/mensajeService';
 import { useUser } from '../context/UserContext';
 import { COLORS } from '../theme';
 
 // URL del endpoint WebSocket STOMP del interaction-service.
-// El backend expone /ws como WebSocket nativo (sin SockJS), por eso no lleva sufijo /websocket.
-const WS_URL = `${WS_BASE_URL}/ws`;
+const STOMP_URL = `${WS_URL}/ws`;
 
 export default function ChatScreen({ route, navigation }) {
   const { solicitud } = route.params;
@@ -77,7 +77,7 @@ export default function ChatScreen({ route, navigation }) {
   const conectarWebSocket = () => {
     const client = new Client({
       // React Native necesita webSocketFactory en lugar de brokerURL
-      webSocketFactory: () => new WebSocket(WS_URL),
+      webSocketFactory: () => new WebSocket(STOMP_URL),
       // Reconexión automática cada 5 segundos si se pierde la conexión
       reconnectDelay: 5000,
       // React Native no transmite bien el terminador NULL de los frames STOMP como texto;
@@ -159,7 +159,7 @@ export default function ChatScreen({ route, navigation }) {
         {item.tipo === 'IMAGEN' ? (
           // Las imágenes se cargan desde la URL del servidor
           <Image
-            source={{ uri: `http://192.168.1.102:8084${item.contenido}` }}
+            source={{ uri: `${WS_URL}${item.contenido}` }}
             style={styles.imagenMensaje}
             resizeMode="cover"
           />
