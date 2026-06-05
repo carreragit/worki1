@@ -35,6 +35,14 @@ public class TrabajadorController {
         return ResponseEntity.ok(trabajadorService.obtenerPorId(id));
     }
 
+    // GET /api/trabajadores/perfil/{perfilId}
+    // El móvil lo usa para saber si el usuario autenticado tiene perfil de trabajador.
+    // Si la respuesta es 404, el usuario es solo cliente.
+    @GetMapping("/perfil/{perfilId}")
+    public ResponseEntity<TrabajadorResponseDTO> obtenerPorPerfilId(@PathVariable Long perfilId) {
+        return ResponseEntity.ok(trabajadorService.obtenerPorPerfilId(perfilId));
+    }
+
     // PUT /api/trabajadores/{id}
     @PutMapping("/{id}")
     public ResponseEntity<TrabajadorResponseDTO> actualizar(

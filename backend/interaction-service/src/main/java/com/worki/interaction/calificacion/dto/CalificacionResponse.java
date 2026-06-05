@@ -17,4 +17,6 @@ public class CalificacionResponse {
     private Integer puntaje;
     private String comentario;
     private LocalDateTime createdAt;
+    // Resuelto por CalificacionService.resolverNombre() — puede ser null si user-service no responde
+    private String nombreEvaluador;
 }

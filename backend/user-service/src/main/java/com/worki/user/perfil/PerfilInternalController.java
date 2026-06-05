@@ -4,6 +4,7 @@ package com.worki.user.perfil;
 // Llamado por auth-service al registrar un usuario para crear su perfil básico automáticamente.
 // No está expuesto en el gateway — solo accesible directamente por puerto 8082.
 
+import com.worki.user.perfil.dto.PerfilResponseDTO;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,12 @@ public class PerfilInternalController {
     public ResponseEntity<Void> crearPerfilBasico(@RequestBody CrearPerfilBasicoRequest request) {
         perfilService.crearPerfilBasico(request.getUsuarioId(), request.getNombreCompleto());
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    // Usado por interaction-service para resolver nombres de cliente/trabajador por usuarioId
+    @GetMapping("/usuario/{usuarioId}")
+    public ResponseEntity<PerfilResponseDTO> obtenerPorUsuarioId(@PathVariable Long usuarioId) {
+        return ResponseEntity.ok(perfilService.obtenerPorUsuarioId(usuarioId));
     }
 
     @Data

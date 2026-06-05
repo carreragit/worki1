@@ -22,4 +22,8 @@ public class SolicitudResponse {
     private Double clienteLongitud;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    // Resueltos por SolicitudService.resolverNombre() llamando a user-service.
+    // Permiten al móvil mostrar nombres directamente sin una segunda solicitud HTTP.
+    private String nombreCliente;
+    private String nombreTrabajador;
 }

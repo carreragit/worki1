@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { login } from '../services/authService';
+import { useUser } from '../context/UserContext';
 import { COLORS, GRADIENTS, RADII, SHADOWS } from '../theme';
 
 export default function LoginScreen({ navigation, route }) {
@@ -22,6 +23,7 @@ export default function LoginScreen({ navigation, route }) {
   const [error, setError]                     = useState('');
   const [loading, setLoading]                 = useState(false);
 
+  const { initUser } = useUser();
   const mensajeExito = route.params?.mensajeExito;
 
   const handleLogin = async () => {
@@ -29,6 +31,7 @@ export default function LoginScreen({ navigation, route }) {
     setLoading(true);
     try {
       await login(email, password);
+      await initUser();
       navigation.replace('Tabs');
     } catch (e) {
       if (e.response?.status === 403) {
