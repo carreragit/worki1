@@ -19,8 +19,9 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, SafeAreaView, StatusBar, Alert, ActivityIndicator,
+  StyleSheet, StatusBar, Alert, ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { crearSolicitud } from '../services/solicitudService';
 import { COLORS } from '../theme';

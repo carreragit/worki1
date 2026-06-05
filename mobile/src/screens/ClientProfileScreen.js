@@ -6,20 +6,23 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  SafeAreaView,
   StatusBar,
   Alert,
-  Dimensions,
   Platform,
   ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADII, SHADOWS } from '../theme';
+import { COLORS } from '../theme';
 import { API_BASE_URL } from '../services/config';
+import { useUser } from '../context/UserContext';
+import { getToken } from '../services/authService';
 
 const HEADER_COLOR = '#41836c';
 
-export default function ClientProfileScreen({ route, navigation }) {
+export default function ClientProfileScreen({ navigation }) {
+  const { user } = useUser();
+
   // ── ESTADOS DE LA INTEGRACIÓN CON BACKEND (API GATEWAY) ──
   const [clientData, setClientData] = useState(null);
   const [solicitudes, setSolicitudes] = useState([]);
@@ -37,21 +40,24 @@ export default function ClientProfileScreen({ route, navigation }) {
 
   // ── CONSUMO DEL API GATEWAY (MÓDULOS USER-SERVICE E INTERACTION-SERVICE) ──
   useEffect(() => {
-    const clienteId = route?.params?.clienteId || route?.params?.id || 1;
+    const clienteId = user?.perfilId;
+    if (!clienteId) return;
+
     const PROFILE_URL = `${API_BASE_URL}/perfiles/${clienteId}`;
     const SOLICITUDES_URL = `${API_BASE_URL}/interacciones/solicitudes/cliente/${clienteId}`;
 
     setIsFetching(true);
 
+    const fetchWithAuth = async (url) => {
+      const token = await getToken();
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      return res.json();
+    };
+
     Promise.all([
-      fetch(PROFILE_URL).then(res => {
-        if (!res.ok) throw new Error('Error al obtener perfil');
-        return res.json();
-      }),
-      fetch(SOLICITUDES_URL).then(res => {
-        if (!res.ok) throw new Error('Error al obtener solicitudes');
-        return res.json();
-      })
+      fetchWithAuth(PROFILE_URL),
+      fetchWithAuth(SOLICITUDES_URL),
     ])
       .then(async ([profile, sols]) => {
         setClientData(profile);
@@ -135,7 +141,7 @@ export default function ClientProfileScreen({ route, navigation }) {
         Alert.alert('Error', 'No se pudo obtener la información de perfil.');
         setIsFetching(false);
       });
-  }, [route?.params?.clienteId, route?.params?.id]);
+  }, [user?.perfilId]);
 
   const handleEditPress = () => {
     const names = clientData?.nombreCompleto?.split(' ') || [];
@@ -152,26 +158,26 @@ export default function ClientProfileScreen({ route, navigation }) {
   };
 
   // Guardar cambios del perfil
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!editForm.nombre.trim() || !editForm.apellido.trim() || !editForm.telefono.trim()) {
       Alert.alert('Campos incompletos', 'Por favor rellena todos los datos del perfil.');
       return;
     }
 
-    const clienteId = route?.params?.clienteId || route?.params?.id || 1;
+    const clienteId = user?.perfilId;
     const PROFILE_UPDATE_URL = `${API_BASE_URL}/perfiles/${clienteId}`;
-
     const nombreCompleto = `${editForm.nombre.trim()} ${editForm.apellido.trim()}`;
+    const token = await getToken();
 
     const requestBody = {
-      usuarioId: clientData?.usuarioId || clienteId,
-      nombreCompleto: nombreCompleto,
+      usuarioId: clientData?.usuarioId || user?.userId,
+      nombreCompleto,
       telefono: editForm.telefono.trim(),
-      ciudad: editForm.comuna.trim(), // Comuna mapeada a la columna ciudad
+      ciudad: editForm.comuna.trim(),
       region: clientData?.region || 'Metropolitana',
       descripcion: clientData?.descripcion || 'Cliente registrado activo para solicitud de servicios del hogar.',
       fotoPerfil: clientData?.fotoPerfil || null,
-      fechaNacimiento: clientData?.fechaNacimiento || '1995-04-12'
+      fechaNacimiento: clientData?.fechaNacimiento || null
     };
 
     setIsFetching(true);
@@ -179,6 +185,7 @@ export default function ClientProfileScreen({ route, navigation }) {
     fetch(PROFILE_UPDATE_URL, {
       method: 'PUT',
       headers: {
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
@@ -359,7 +366,11 @@ export default function ClientProfileScreen({ route, navigation }) {
                 </View>
                 <View style={styles.datoItem}>
                   <Text style={styles.datoLabel}>Miembro desde</Text>
-                  <Text style={styles.datoValorSecundario}>15 de Marzo, 2026</Text>
+                  <Text style={styles.datoValorSecundario}>
+                    {clientData?.fechaCreacion
+                      ? new Date(clientData.fechaCreacion).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })
+                      : 'No disponible'}
+                  </Text>
                 </View>
               </View>
             )}

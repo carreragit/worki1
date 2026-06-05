@@ -15,13 +15,14 @@
  * a un trabajador para que el rating actualizado sea visible de inmediato.
  */
 // mobile/src/screens/HomeScreen.js
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  TextInput, StyleSheet, SafeAreaView, StatusBar,
+  TextInput, StyleSheet, StatusBar,
   ActivityIndicator, Alert, Linking,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
