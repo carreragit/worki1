@@ -33,7 +33,6 @@ export default function ClientProfileScreen({ navigation }) {
   const [editForm, setEditForm] = useState({
     nombre: '',
     apellido: '',
-    correo: '',
     telefono: '',
     comuna: ''
   });
@@ -150,7 +149,6 @@ export default function ClientProfileScreen({ navigation }) {
     setEditForm({
       nombre: nombre,
       apellido: apellido,
-      correo: clientData?.correo || 'correo@worki.cl',
       telefono: clientData?.telefono || '',
       comuna: clientData?.comuna || clientData?.ciudad || ''
     });
@@ -303,16 +301,6 @@ export default function ClientProfileScreen({ navigation }) {
                   />
                 </View>
                 <View style={styles.formGroup}>
-                  <Text style={styles.inputLabel}>Correo Electrónico (Solo Lectura)</Text>
-                  <TextInput 
-                    style={[styles.textInput, { backgroundColor: '#E5E7EB', color: '#6B7280' }]}
-                    value={editForm.correo}
-                    editable={false}
-                    placeholder="ejemplo@worki.cl"
-                    placeholderTextColor={COLORS.textMuted}
-                  />
-                </View>
-                <View style={styles.formGroup}>
                   <Text style={styles.inputLabel}>Teléfono</Text>
                   <TextInput 
                     style={styles.textInput}
@@ -353,8 +341,8 @@ export default function ClientProfileScreen({ navigation }) {
               // MODO VISTA DE DATOS
               <View style={styles.datosGrid}>
                 <View style={styles.datoItem}>
-                  <Text style={styles.datoLabel}>Correo Electrónico</Text>
-                  <Text style={styles.datoValor}>{clientData?.correo || 'correo@worki.cl'}</Text>
+                  <Text style={styles.datoLabel}>Región</Text>
+                  <Text style={styles.datoValor}>{clientData?.region || 'No registrada'}</Text>
                 </View>
                 <View style={styles.datoItem}>
                   <Text style={styles.datoLabel}>Teléfono de contacto</Text>
