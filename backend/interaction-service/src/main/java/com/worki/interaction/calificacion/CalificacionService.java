@@ -67,9 +67,14 @@ public class CalificacionService {
                     "Ya calificaste esta solicitud. Solo se permite una calificación por parte.");
         }
 
+        // Si oficioId no viene en el request, se toma de la solicitud
+        Long oficioId = request.getOficioId() != null
+                ? request.getOficioId()
+                : solicitud.getOficioId();
+
         Calificacion nueva = Calificacion.builder()
                 .solicitudId(request.getSolicitudId())
-                .oficioId(request.getOficioId())
+                .oficioId(oficioId)
                 .evaluadorId(request.getEvaluadorId())
                 .evaluadoId(request.getEvaluadoId())
                 .puntaje(request.getPuntaje())
@@ -78,17 +83,27 @@ public class CalificacionService {
 
         CalificacionResponse response = toResponse(calificacionRepository.save(nueva));
 
-        // Notifica a user-service para que actualice el promedio del oficio
-        actualizarPromedioEnUserService(request.getOficioId());
+        // Actualizar promedio del oficio en user-service (no crítico — no revierte la calificación)
+        if (oficioId != null) {
+            try {
+                actualizarPromedioEnUserService(oficioId);
+            } catch (Exception e) {
+                System.err.println("[CalificacionService] Error actualizando promedio oficio " + oficioId + ": " + e.getMessage());
+            }
+        }
 
         return response;
     }
 
+    // Recalcula el promedio del oficio y lo envía a user-service para que quede
+    // guardado directamente en el registro del Oficio. Así el frontend no necesita
+    // llamar a interaction-service cada vez que quiera mostrar el rating.
     private void actualizarPromedioEnUserService(Long oficioId) {
         Double promedio = calificacionRepository.calcularPromedioPorOficio(oficioId).orElse(0.0);
         int total = calificacionRepository.findByOficioId(oficioId).size();
 
         ActualizarPromedioRequest body = new ActualizarPromedioRequest();
+        // Redondeamos a 2 decimales para no guardar valores como 3.666666...
         body.setPromedio(Math.round(promedio * 100.0) / 100.0);
         body.setTotalCalificaciones(total);
 
@@ -96,6 +111,7 @@ public class CalificacionService {
         restTemplate.patchForObject(url, body, Void.class);
     }
 
+    // DTO interno para el body del PATCH a user-service
     @Data
     private static class ActualizarPromedioRequest {
         private Double promedio;
@@ -179,6 +195,29 @@ public class CalificacionService {
                 .puntaje(c.getPuntaje())
                 .comentario(c.getComentario())
                 .createdAt(c.getCreatedAt())
+                // Resolvemos el nombre del evaluador para mostrarlo en la UI sin otra llamada HTTP
+                .nombreEvaluador(resolverNombre(c.getEvaluadorId()))
                 .build();
+    }
+
+    // Consulta el nombre del evaluador a user-service. Si el servicio no responde,
+    // devuelve null en lugar de fallar — el frontend puede mostrar "Anónimo" en ese caso
+    private String resolverNombre(Long usuarioId) {
+        try {
+            PerfilDto perfil = restTemplate.getForObject(
+                userServiceUrl + "/internal/perfiles/usuario/" + usuarioId,
+                PerfilDto.class
+            );
+            return perfil != null ? perfil.getNombreCompleto() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // DTO mínimo para deserializar la respuesta de /internal/perfiles/usuario/{id}
+    @Data
+    private static class PerfilDto {
+        private Long id;
+        private String nombreCompleto;
     }
 }

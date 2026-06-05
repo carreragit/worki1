@@ -3,17 +3,62 @@
 // basta con modificar este archivo para que el cambio se refleje en toda la app.
 
 export const COLORS = {
-  primary:      '#16A34A',
-  primaryLight: '#DCFCE7',
-  background:   '#F9FAFB',
-  surface:      '#FFFFFF',
-  textPrimary:  '#111827',
-  textSecondary:'#6B7280',
-  textMuted:    '#9CA3AF',
-  border:       '#E5E7EB',
+  // ── Marca y acciones principales ──
+  primary:      '#16A34A',  // verde Worki — botones, acentos, elementos activos
+  primaryDark:  '#15803D',  // verde más oscuro — usado en gradientes
+  primaryLight: '#DCFCE7',  // verde claro — fondos de badges y chips
+  primarySoft:  '#F0FDF4',  // verde muy suave — fondos de tarjetas resaltadas
+  primaryBorder:'#BBF7D0',  // borde verde claro
+
+  // ── Superficies y fondos ──
+  background:   '#F9FAFB',  // fondo general de pantallas
+  surface:      '#FFFFFF',  // fondo de tarjetas, headers, inputs
+  surfaceAlt:   '#F3F4F6',  // fondo gris alternativo (chat, estados cancelados)
+
+  // ── Texto ──
+  textPrimary:  '#111827',  // texto principal
+  textSecondary:'#6B7280',  // texto secundario
+  textMuted:    '#9CA3AF',  // texto deshabilitado / placeholders
+  textLight:    '#374151',  // texto de párrafos
+  disabled:     '#D1D5DB',  // gris de elementos inactivos (estrellas, botones deshabilitados, íconos vacíos)
+
+  // ── Bordes ──
+  border:       '#E5E7EB',  // borde estándar
+  borderLight:  '#F3F4F6',  // borde muy sutil
+
+  // ── Estados / feedback ──
   error:        '#DC2626',
+  errorBg:      '#FEF2F2',
+  errorBorder:  '#FECACA',
   success:      '#16A34A',
   warning:      '#FBBF24',
+
+  // ── Color secundario (chat) ──
+  info:         '#2563EB',  // azul — indicadores y botón de chat
+  infoBg:       '#EFF6FF',
+  infoBorder:   '#BFDBFE',
+};
+
+// Colores rotativos para los avatares de los trabajadores.
+// Se elige uno según el id del trabajador para que cada uno tenga un color consistente.
+export const AVATAR_COLORS = ['#16A34A', '#2563EB', '#9333EA', '#EA580C', '#0891B2', '#DC2626'];
+
+// Colores de fondo y texto para cada estado de una solicitud.
+// Se usan en las tarjetas y en el detalle para dar feedback visual del estado.
+export const ESTADO_COLORS = {
+  PENDIENTE:  { bg: '#FEF3C7', text: '#92400E' },
+  ACEPTADA:   { bg: '#DCFCE7', text: '#166534' },
+  COMPLETADA: { bg: '#F0F9FF', text: '#0369A1' },
+  RECHAZADA:  { bg: '#FEE2E2', text: '#991B1B' },
+  CANCELADA:  { bg: '#F3F4F6', text: '#6B7280' },
+};
+
+// Colores para el botón y badge de calificación (estrellas)
+export const RATING_COLORS = {
+  star:    '#FBBF24',  // amarillo de las estrellas
+  bg:      '#FFFBEB',  // fondo del botón "Dejar reseña"
+  border:  '#FDE68A',
+  text:    '#92400E',
 };
 
 export const GRADIENTS = {
