@@ -19,6 +19,7 @@
 // mobile/src/screens/PerfilTecnicoScreen.js
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
+import { useUser } from '../context/UserContext';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, StatusBar, ActivityIndicator,
@@ -35,6 +36,8 @@ const TABS = ['Información', 'Servicios', 'Reseñas'];
 
 export default function PerfilTecnicoScreen({ route, navigation }) {
   const { oficio } = route.params;
+  const { user } = useUser();
+  const esMiPerfil = user.trabajadorId != null && user.trabajadorId === oficio.trabajadorId;
   const [tabActivo, setTabActivo] = useState('Información');
   const [oficios, setOficios] = useState([oficio]);
   const [cargando, setCargando] = useState(true);
@@ -177,10 +180,14 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.btnContactar} activeOpacity={0.85}
-          onPress={() => navigation.navigate('CrearSolicitud', { oficio: oficioActual, oficios })}>
+        <TouchableOpacity
+          style={[styles.btnContactar, esMiPerfil && styles.btnContactarDeshabilitado]}
+          activeOpacity={esMiPerfil ? 1 : 0.85}
+          disabled={esMiPerfil}
+          onPress={() => navigation.navigate('CrearSolicitud', { oficio: oficioActual, oficios })}
+        >
           <Text style={styles.btnContactarTexto}>
-            Contactar a {(oficio.nombreTrabajador ?? 'Técnico').split(' ')[0]}
+            {esMiPerfil ? 'Este es tu perfil' : `Contactar a ${(oficio.nombreTrabajador ?? 'Técnico').split(' ')[0]}`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -216,6 +223,7 @@ const styles = StyleSheet.create({
   servicioTarifa: { fontSize: 12, color: COLORS.primary, marginTop: 2 },
   footer: { paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.border, backgroundColor: COLORS.surface },
   btnContactar: { backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  btnContactarDeshabilitado: { backgroundColor: COLORS.disabled },
   btnContactarTexto: { color: COLORS.surface, fontSize: 16, fontWeight: '700' },
   resenaCard: {
     backgroundColor: COLORS.background, borderRadius: 12, padding: 14, marginBottom: 10,

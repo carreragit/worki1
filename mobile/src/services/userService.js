@@ -82,6 +82,30 @@ export const activarTrabajador = async ({ perfilId, latitud, longitud, radioKm }
  * @param {number} params.tarifaHora
  * @param {number} params.tarifaServicioBase
  */
+/**
+ * Obtiene el perfil por su id directo (perfilId, no userId).
+ * Usado en PerfilScreen para cargar región, teléfono, ciudad, etc.
+ *
+ * @param {number} perfilId
+ */
+export const obtenerPerfilPorId = async (perfilId) => {
+  const headers = await authHeaders();
+  const res = await axios.get(`${GATEWAY_URL}/api/perfiles/${perfilId}`, { headers });
+  return res.data;
+};
+
+/**
+ * Actualiza los datos del perfil de un usuario.
+ *
+ * @param {number} perfilId
+ * @param {object} data — body completo que espera el backend
+ */
+export const actualizarPerfil = async (perfilId, data) => {
+  const headers = await authHeaders();
+  const res = await axios.put(`${GATEWAY_URL}/api/perfiles/${perfilId}`, data, { headers });
+  return res.data;
+};
+
 export const crearOficio = async ({ trabajadorId, especialidad, nombreServicio, descripcionServicio, tarifaHora, tarifaServicioBase }) => {
   const headers = await authHeaders();
   const res = await axios.post(`${GATEWAY_URL}/api/oficios`,

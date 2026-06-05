@@ -122,7 +122,7 @@ public class SolicitudService {
                 // razón (user-service caído, usuario borrado), se devuelve un fallback
                 // genérico para no romper la respuesta completa
                 .nombreCliente(resolverNombre(s.getClienteId()))
-                .nombreTrabajador(resolverNombre(s.getTrabajadorId()))
+                .nombreTrabajador(resolverNombreTrabajador(s.getTrabajadorId()))
                 .build();
     }
 
@@ -133,8 +133,7 @@ public class SolicitudService {
         private String nombreCompleto;
     }
 
-    // Consulta el nombre del usuario a user-service por su usuarioId.
-    // El try-catch evita que un fallo de red tumbe toda la respuesta de solicitud.
+    // Resuelve el nombre del cliente usando su usuarioId (campo sub del JWT).
     private String resolverNombre(Long usuarioId) {
         try {
             PerfilDto perfil = restTemplate.getForObject(
@@ -144,6 +143,21 @@ public class SolicitudService {
             return perfil != null ? perfil.getNombreCompleto() : "Usuario #" + usuarioId;
         } catch (Exception e) {
             return "Usuario #" + usuarioId;
+        }
+    }
+
+    // Resuelve el nombre del trabajador usando su trabajadorId (id en tabla trabajadores,
+    // distinto del usuarioId). El endpoint /internal/perfiles/trabajador hace el join
+    // trabajadores → perfiles internamente en user-service.
+    private String resolverNombreTrabajador(Long trabajadorId) {
+        try {
+            PerfilDto perfil = restTemplate.getForObject(
+                userServiceUrl + "/internal/perfiles/trabajador/" + trabajadorId,
+                PerfilDto.class
+            );
+            return perfil != null ? perfil.getNombreCompleto() : "Técnico #" + trabajadorId;
+        } catch (Exception e) {
+            return "Técnico #" + trabajadorId;
         }
     }
 }
