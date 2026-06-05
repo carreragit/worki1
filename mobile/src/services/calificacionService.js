@@ -8,7 +8,7 @@
 import axios from 'axios';
 import { getToken } from './authService';
 
-const GATEWAY_URL = 'http://192.168.1.102:8080';
+import { GATEWAY_URL } from './config';
 
 // Helper para no repetir la lógica del header en cada función
 const authHeaders = async () => {

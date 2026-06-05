@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../theme';
-import { API_BASE_URL } from '../services/config';
+import { GATEWAY_URL } from '../services/config';
 import { useUser } from '../context/UserContext';
 import { getToken } from '../services/authService';
 
@@ -42,8 +42,8 @@ export default function ClientProfileScreen({ navigation }) {
     const clienteId = user?.perfilId;
     if (!clienteId) return;
 
-    const PROFILE_URL = `${API_BASE_URL}/perfiles/${clienteId}`;
-    const SOLICITUDES_URL = `${API_BASE_URL}/interacciones/solicitudes/cliente/${clienteId}`;
+    const PROFILE_URL = `${GATEWAY_URL + '/api'}/perfiles/${clienteId}`;
+    const SOLICITUDES_URL = `${GATEWAY_URL + '/api'}/interacciones/solicitudes/cliente/${clienteId}`;
 
     setIsFetching(true);
 
@@ -68,7 +68,7 @@ export default function ClientProfileScreen({ navigation }) {
               // 1. Obtener detalles del oficio
               let oficioInfo = { especialidad: 'Profesional' };
               if (sol.oficioId) {
-                const oficioRes = await fetch(`${API_BASE_URL}/oficios/${sol.oficioId}`);
+                const oficioRes = await fetch(`${GATEWAY_URL + '/api'}/oficios/${sol.oficioId}`);
                 if (oficioRes.ok) {
                   oficioInfo = await oficioRes.json();
                 }
@@ -77,11 +77,11 @@ export default function ClientProfileScreen({ navigation }) {
               // 2. Obtener detalles del trabajador (para buscar su perfilId)
               let workerProfile = { nombreCompleto: `Trabajador #${sol.trabajadorId}` };
               if (sol.trabajadorId) {
-                const workerRes = await fetch(`${API_BASE_URL}/trabajadores/${sol.trabajadorId}`);
+                const workerRes = await fetch(`${GATEWAY_URL + '/api'}/trabajadores/${sol.trabajadorId}`);
                 if (workerRes.ok) {
                   const workerData = await workerRes.json();
                   if (workerData?.perfilId) {
-                    const perfilRes = await fetch(`${API_BASE_URL}/perfiles/${workerData.perfilId}`);
+                    const perfilRes = await fetch(`${GATEWAY_URL + '/api'}/perfiles/${workerData.perfilId}`);
                     if (perfilRes.ok) {
                       workerProfile = await perfilRes.json();
                     }
@@ -163,7 +163,7 @@ export default function ClientProfileScreen({ navigation }) {
     }
 
     const clienteId = user?.perfilId;
-    const PROFILE_UPDATE_URL = `${API_BASE_URL}/perfiles/${clienteId}`;
+    const PROFILE_UPDATE_URL = `${GATEWAY_URL + '/api'}/perfiles/${clienteId}`;
     const nombreCompleto = `${editForm.nombre.trim()} ${editForm.apellido.trim()}`;
     const token = await getToken();
 

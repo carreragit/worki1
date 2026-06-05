@@ -30,7 +30,7 @@ import axios from 'axios';
 import { getToken } from '../services/authService';
 import { COLORS, AVATAR_COLORS } from '../theme';
 
-const GATEWAY_URL = 'http://192.168.1.102:8080';
+import { GATEWAY_URL } from '../services/config';
 const CATEGORIAS = ['Todos', 'Electricista', 'Gasfiter', 'Pintor', 'Cerrajero', 'Cuidador'];
 
 function colorPorId(id) {

@@ -30,7 +30,7 @@ import { getToken } from '../services/authService';
 import { listarPorTrabajador } from '../services/calificacionService';
 import { COLORS, AVATAR_COLORS } from '../theme';
 
-const GATEWAY_URL = 'http://192.168.1.102:8080';
+import { GATEWAY_URL } from '../services/config';
 const TABS = ['Información', 'Servicios', 'Reseñas'];
 
 export default function PerfilTecnicoScreen({ route, navigation }) {

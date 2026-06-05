@@ -8,7 +8,7 @@
 import axios from 'axios';
 import { getToken } from './authService';
 
-const GATEWAY_URL = 'http://192.168.1.102:8080';
+import { GATEWAY_URL } from './config';
 
 /**
  * Crea una nueva solicitud de servicio.
