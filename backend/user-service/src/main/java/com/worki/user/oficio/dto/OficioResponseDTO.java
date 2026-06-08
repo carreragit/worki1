@@ -20,4 +20,9 @@ public class OficioResponseDTO {
     private Double latitud;
     private Double longitud;
     private Double radioKm;
+
+    // Datos del perfil del trabajador, enriquecidos en OficioService para evitar
+    // que el frontend tenga que hacer una segunda llamada a user-service
+    private String nombreTrabajador;
+    private String fotoPerfil;
 }

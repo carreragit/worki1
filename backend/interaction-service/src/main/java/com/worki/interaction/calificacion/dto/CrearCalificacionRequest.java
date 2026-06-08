@@ -9,7 +9,7 @@ public class CrearCalificacionRequest {
     @NotNull(message = "El ID de la solicitud es obligatorio")
     private Long solicitudId;
 
-    @NotNull(message = "El ID del oficio es obligatorio")
+    // Opcional — si no viene, CalificacionService lo obtiene de la solicitud
     private Long oficioId;
 
     @NotNull(message = "El ID del evaluador es obligatorio")

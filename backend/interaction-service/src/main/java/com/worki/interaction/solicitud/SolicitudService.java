@@ -3,9 +3,12 @@ package com.worki.interaction.solicitud;
 import com.worki.interaction.solicitud.dto.ActualizarEstadoRequest;
 import com.worki.interaction.solicitud.dto.CrearSolicitudRequest;
 import com.worki.interaction.solicitud.dto.SolicitudResponse;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,6 +19,10 @@ import java.util.stream.Collectors;
 public class SolicitudService {
 
     private final SolicitudRepository solicitudRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${user-service.url}")
+    private String userServiceUrl;
 
     public SolicitudResponse crearSolicitud(Long clienteId, CrearSolicitudRequest request) {
         boolean yaExiste = (request.getOficioId() != null)
@@ -111,6 +118,46 @@ public class SolicitudService {
                 .clienteLongitud(s.getClienteLongitud())
                 .createdAt(s.getCreatedAt())
                 .updatedAt(s.getUpdatedAt())
+                // Llamamos a user-service para obtener los nombres. Si falla por cualquier
+                // razón (user-service caído, usuario borrado), se devuelve un fallback
+                // genérico para no romper la respuesta completa
+                .nombreCliente(resolverNombre(s.getClienteId()))
+                .nombreTrabajador(resolverNombreTrabajador(s.getTrabajadorId()))
                 .build();
+    }
+
+    // DTO mínimo para deserializar solo el campo que nos importa del perfil
+    @Data
+    private static class PerfilDto {
+        private Long id;
+        private String nombreCompleto;
+    }
+
+    // Resuelve el nombre del cliente usando su usuarioId (campo sub del JWT).
+    private String resolverNombre(Long usuarioId) {
+        try {
+            PerfilDto perfil = restTemplate.getForObject(
+                userServiceUrl + "/internal/perfiles/usuario/" + usuarioId,
+                PerfilDto.class
+            );
+            return perfil != null ? perfil.getNombreCompleto() : "Usuario #" + usuarioId;
+        } catch (Exception e) {
+            return "Usuario #" + usuarioId;
+        }
+    }
+
+    // Resuelve el nombre del trabajador usando su trabajadorId (id en tabla trabajadores,
+    // distinto del usuarioId). El endpoint /internal/perfiles/trabajador hace el join
+    // trabajadores → perfiles internamente en user-service.
+    private String resolverNombreTrabajador(Long trabajadorId) {
+        try {
+            PerfilDto perfil = restTemplate.getForObject(
+                userServiceUrl + "/internal/perfiles/trabajador/" + trabajadorId,
+                PerfilDto.class
+            );
+            return perfil != null ? perfil.getNombreCompleto() : "Técnico #" + trabajadorId;
+        } catch (Exception e) {
+            return "Técnico #" + trabajadorId;
+        }
     }
 }

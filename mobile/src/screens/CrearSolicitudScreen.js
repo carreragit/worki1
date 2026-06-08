@@ -1,20 +1,43 @@
+/**
+ * CrearSolicitudScreen
+ *
+ * Formulario para que un cliente envíe una solicitud de servicio a un técnico.
+ *
+ * Recibe por parámetro:
+ *   - oficio: el oficio seleccionado por defecto (puede ser cualquiera de los del técnico).
+ *   - oficios: lista completa de oficios del técnico, para que el cliente pueda
+ *              elegir cuál servicio específico necesita.
+ *
+ * Si el técnico tiene más de un oficio, se muestran botones de selección.
+ * Si solo tiene uno, se muestra fijo sin opción a cambiar.
+ *
+ * Al enviar, se incluye el oficioId del oficio seleccionado — es importante
+ * para que el backend asocie la solicitud al servicio correcto y calcule
+ * el precio estimado.
+ */
+// mobile/src/screens/CrearSolicitudScreen.js
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, SafeAreaView, StatusBar, Alert, ActivityIndicator,
+  StyleSheet, StatusBar, Alert, ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { crearSolicitud } from '../services/solicitudService';
+import { COLORS } from '../theme';
 
 export default function CrearSolicitudScreen({ route, navigation }) {
-  const { worker } = route.params;
+  const { oficio: oficioInicial, oficios = [] } = route.params;
 
+  const [oficioSeleccionado, setOficioSeleccionado] = useState(oficioInicial);
   const [descripcion, setDescripcion]   = useState('');
   const [fecha, setFecha]               = useState('');
   const [hora, setHora]                 = useState('');
   const [direccion, setDireccion]       = useState('');
   const [enviando, setEnviando]         = useState(false);
 
+  // Convierte la fecha (DD/MM/AAAA) y hora (HH:MM) ingresadas por el usuario
+  // al formato ISO 8601 que espera el backend: AAAA-MM-DDTHH:MM:00
   const parseFechaHora = () => {
     if (!fecha || !hora) return null;
     const [dia, mes, anio] = fecha.split('/');
@@ -27,26 +50,25 @@ export default function CrearSolicitudScreen({ route, navigation }) {
       Alert.alert('Campo requerido', 'Por favor describe tu necesidad.');
       return;
     }
-
     setEnviando(true);
     try {
       await crearSolicitud({
-        trabajadorId: worker.id,
-        oficioId: null,
+        trabajadorId: oficioSeleccionado.trabajadorId,
+        oficioId: oficioSeleccionado.id,
         descripcion: descripcion.trim(),
         fechaHoraPreferida: parseFechaHora(),
         direccion: direccion.trim() || null,
       });
       Alert.alert(
         '¡Solicitud enviada!',
-        `Tu solicitud a ${worker.nombre} fue enviada. Te contactará pronto.`,
+        `Tu solicitud a ${oficioSeleccionado.nombreTrabajador} fue enviada. Te contactará pronto.`,
         [{ text: 'OK', onPress: () => navigation.navigate('Tabs') }]
       );
     } catch (error) {
       const mensaje =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
-        (error?.response?.status === 500 ? 'Ya existe una solicitud activa para este trabajador.' : 'No se pudo enviar la solicitud. Intenta de nuevo.');
+        'No se pudo enviar la solicitud. Intenta de nuevo.';
       Alert.alert('Error', mensaje);
     } finally {
       setEnviando(false);
@@ -56,111 +78,79 @@ export default function CrearSolicitudScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.pantalla}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-
-      {/* ── HEADER ── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnAtras}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitulo}>Solicitar servicio</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-
-        {/* ── INFO TRABAJADOR ── */}
-        <View style={styles.workerCard}>
-          <View style={[styles.avatar, { backgroundColor: worker.color }]}>
-            <Text style={styles.avatarTexto}>{worker.iniciales}</Text>
-          </View>
-          <View style={styles.workerInfo}>
-            <Text style={styles.workerNombre}>{worker.nombre}</Text>
-            <Text style={styles.workerOficio}>
-              {worker.oficio} · ★ {worker.rating} · Disponible hoy
-            </Text>
-          </View>
-        </View>
-
         <View style={styles.formulario}>
 
-          {/* ── TIPO DE SERVICIO ── */}
-          <Text style={styles.label}>Tipo de servicio</Text>
-          <View style={styles.tipoServicioBox}>
-            <Text style={styles.tipoServicioTexto}>{worker.oficio}</Text>
-            <Ionicons name="chevron-down" size={18} color="#6B7280" />
-          </View>
+          {/* SELECTOR DE OFICIO: si el técnico tiene varios servicios, el cliente elige uno */}
+          <Text style={styles.label}>Servicio solicitado</Text>
+          {oficios.length > 1 ? (
+            oficios.map(o => (
+              <TouchableOpacity key={o.id}
+                style={[styles.oficioOpcion, oficioSeleccionado.id === o.id && styles.oficioOpcionActivo]}
+                onPress={() => setOficioSeleccionado(o)}>
+                <Text style={[styles.oficioTexto, oficioSeleccionado.id === o.id && styles.oficioTextoActivo]}>
+                  {o.nombreServicio ?? o.especialidad}
+                </Text>
+                {o.tarifaServicioBase && (
+                  <Text style={[styles.oficioTarifa, oficioSeleccionado.id === o.id && { color: '#FFFFFF99' }]}>
+                    Desde ${o.tarifaServicioBase.toLocaleString()}
+                  </Text>
+                )}
+                {oficioSeleccionado.id === o.id && (
+                  <Ionicons name="checkmark-circle" size={20} color={COLORS.surface} style={{ position: 'absolute', right: 12 }} />
+                )}
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.oficioFijo}>
+              <Text style={styles.oficioTexto}>{oficioSeleccionado.nombreServicio ?? oficioSeleccionado.especialidad}</Text>
+            </View>
+          )}
 
-          {/* ── DESCRIPCIÓN ── */}
+          {/* DESCRIPCIÓN */}
           <Text style={styles.label}>Describe tu necesidad</Text>
-          <TextInput
-            style={styles.textarea}
-            placeholder={`Ej: Necesito ayuda con ${worker.oficio.toLowerCase()}, el problema es...`}
-            placeholderTextColor="#9CA3AF"
-            multiline
-            numberOfLines={5}
-            textAlignVertical="top"
-            value={descripcion}
-            onChangeText={setDescripcion}
-            maxLength={2000}
-          />
+          <TextInput style={styles.textarea}
+            placeholder={`Ej: Necesito ayuda con ${oficioSeleccionado.especialidad?.toLowerCase()}, el problema es...`}
+            placeholderTextColor={COLORS.textMuted} multiline numberOfLines={5}
+            textAlignVertical="top" value={descripcion} onChangeText={setDescripcion} maxLength={2000} />
 
-          {/* ── FECHA Y HORA ── */}
+          {/* FECHA Y HORA */}
           <Text style={styles.label}>Fecha y hora preferida</Text>
           <View style={styles.fechaHoraRow}>
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="DD/MM/AAAA"
-              placeholderTextColor="#9CA3AF"
-              value={fecha}
-              onChangeText={setFecha}
-              keyboardType="numeric"
-              maxLength={10}
-            />
-            <TextInput
-              style={[styles.input, { width: 100 }]}
-              placeholder="HH:MM"
-              placeholderTextColor="#9CA3AF"
-              value={hora}
-              onChangeText={setHora}
-              keyboardType="numeric"
-              maxLength={5}
-            />
+            <TextInput style={[styles.input, { flex: 1 }]} placeholder="DD/MM/AAAA"
+              placeholderTextColor={COLORS.textMuted} value={fecha} onChangeText={setFecha}
+              keyboardType="numeric" maxLength={10} />
+            <TextInput style={[styles.input, { width: 100 }]} placeholder="HH:MM"
+              placeholderTextColor={COLORS.textMuted} value={hora} onChangeText={setHora}
+              keyboardType="numeric" maxLength={5} />
           </View>
 
-          {/* ── DIRECCIÓN ── */}
+          {/* DIRECCIÓN */}
           <Text style={styles.label}>Dirección del servicio</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Calle y número, comuna"
-            placeholderTextColor="#9CA3AF"
-            value={direccion}
-            onChangeText={setDireccion}
-          />
+          <TextInput style={styles.input} placeholder="Calle y número, comuna"
+            placeholderTextColor={COLORS.textMuted} value={direccion} onChangeText={setDireccion} />
 
-          {/* ── PRECIO ESTIMADO ── */}
           <View style={styles.precioBloque}>
             <Text style={styles.precioLabel}>Precio estimado</Text>
-            <Text style={styles.precioValor}>${worker.precio}</Text>
+            <Text style={styles.precioValor}>${oficioSeleccionado.tarifaServicioBase?.toLocaleString() ?? '—'}</Text>
             <Text style={styles.precioNota}>El pago se coordina directamente con el técnico</Text>
           </View>
-
         </View>
-
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* ── BOTÓN FIJO ── */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.btnEnviar, enviando && styles.btnEnviando]}
-          activeOpacity={0.85}
-          onPress={handleEnviar}
-          disabled={enviando}
-        >
-          {enviando
-            ? <ActivityIndicator color="#FFFFFF" />
-            : <Text style={styles.btnEnviarTexto}>Enviar solicitud</Text>
-          }
+        <TouchableOpacity style={[styles.btnEnviar, enviando && { opacity: 0.7 }]}
+          activeOpacity={0.85} onPress={handleEnviar} disabled={enviando}>
+          {enviando ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.btnEnviarTexto}>Enviar solicitud</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -168,71 +158,26 @@ export default function CrearSolicitudScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: '#FFFFFF' },
-
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
-  },
+  pantalla: { flex: 1, backgroundColor: COLORS.surface },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.borderLight },
   btnAtras: { padding: 4 },
-  headerTitulo: { fontSize: 17, fontWeight: '700', color: '#111827' },
-
-  workerCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingHorizontal: 20, paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
-  },
-  avatar: {
-    width: 52, height: 52, borderRadius: 26,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarTexto: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
-  workerInfo: { flex: 1 },
-  workerNombre: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  workerOficio: { fontSize: 13, color: '#6B7280', marginTop: 3 },
-
+  headerTitulo: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
   formulario: { padding: 20 },
-
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8, marginTop: 16 },
-
-  tipoServicioBox: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12, backgroundColor: '#F9FAFB',
-  },
-  tipoServicioTexto: { fontSize: 14, color: '#111827' },
-
-  textarea: {
-    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 14, color: '#111827', minHeight: 110,
-  },
-
-  input: {
-    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 14, color: '#111827',
-  },
-
+  label: { fontSize: 13, fontWeight: '600', color: COLORS.textLight, marginBottom: 8, marginTop: 16 },
+  oficioOpcion: { padding: 14, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 8, backgroundColor: COLORS.background },
+  oficioOpcionActivo: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  oficioFijo: { padding: 14, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
+  oficioTexto: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  oficioTextoActivo: { color: COLORS.surface },
+  oficioTarifa: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  textarea: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary, minHeight: 110 },
+  input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary },
   fechaHoraRow: { flexDirection: 'row', gap: 10 },
-
-  precioBloque: {
-    marginTop: 20, padding: 16, backgroundColor: '#F9FAFB',
-    borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB',
-  },
-  precioLabel: { fontSize: 12, color: '#6B7280', marginBottom: 4 },
-  precioValor: { fontSize: 22, fontWeight: '800', color: '#111827' },
-  precioNota: { fontSize: 11, color: '#9CA3AF', marginTop: 4 },
-
-  footer: {
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderTopWidth: 1, borderTopColor: '#E5E7EB', backgroundColor: '#FFFFFF',
-  },
-  btnEnviar: {
-    backgroundColor: '#16A34A', borderRadius: 14,
-    paddingVertical: 16, alignItems: 'center',
-  },
-  btnEnviando: { opacity: 0.7 },
-  btnEnviarTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  precioBloque: { marginTop: 20, padding: 16, backgroundColor: COLORS.background, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border },
+  precioLabel: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 4 },
+  precioValor: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary },
+  precioNota: { fontSize: 11, color: COLORS.textMuted, marginTop: 4 },
+  footer: { paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.border, backgroundColor: COLORS.surface },
+  btnEnviar: { backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  btnEnviarTexto: { color: COLORS.surface, fontSize: 16, fontWeight: '700' },
 });

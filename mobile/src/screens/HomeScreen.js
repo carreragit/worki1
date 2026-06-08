@@ -1,40 +1,54 @@
-import { useState } from 'react';
+/**
+ * HomeScreen
+ *
+ * Pantalla principal del tab navigator. Muestra los técnicos disponibles cerca
+ * del usuario, usando GPS para calcular la distancia (Haversine en el backend).
+ *
+ * Flujo al abrir la pantalla:
+ *   1. Pide permiso de ubicación.
+ *   2. Obtiene las coordenadas actuales.
+ *   3. Llama al endpoint /api/oficios/mapa con lat, lon y radioKm.
+ *   4. Muestra las tarjetas de técnicos filtradas por búsqueda y categoría.
+ *
+ * Usa useFocusEffect (en lugar de useEffect) para recargar los técnicos cada
+ * vez que el usuario vuelve a esta pestaña, por ejemplo después de calificar
+ * a un trabajador para que el rating actualizado sea visible de inmediato.
+ */
+// mobile/src/screens/HomeScreen.js
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  StyleSheet,
-  SafeAreaView,
-  StatusBar,
+  View, Text, ScrollView, TouchableOpacity,
+  TextInput, StyleSheet, StatusBar,
+  ActivityIndicator, Alert, Linking,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import { getToken } from '../services/authService';
+import { COLORS, AVATAR_COLORS } from '../theme';
 
-// ─── 1. DATOS MOCK ────────────────────────────────────────────────────────────
-// Lista fija de trabajadores. Más adelante se reemplaza con datos del backend.
-
+import { GATEWAY_URL } from '../services/config';
 const CATEGORIAS = ['Todos', 'Electricista', 'Gasfiter', 'Pintor', 'Cerrajero', 'Cuidador'];
 
-const TRABAJADORES = [
-  { id: 1, iniciales: 'AP', nombre: 'Ana Pizarro',    oficio: 'Electricista', rating: 4.7, precio: '30.000', color: '#16A34A' },
-  { id: 2, iniciales: 'CR', nombre: 'Carlos Rojas',   oficio: 'Gasfiter',     rating: 4.5, precio: '25.000', color: '#2563EB' },
-  { id: 3, iniciales: 'MG', nombre: 'María González', oficio: 'Cerrajero',    rating: 4.8, precio: '20.000', color: '#9333EA' },
-  { id: 4, iniciales: 'PM', nombre: 'Pedro Muñoz',    oficio: 'Pintor',       rating: 4.3, precio: '35.000', color: '#EA580C' },
-  { id: 5, iniciales: 'ST', nombre: 'Sofía Torres',   oficio: 'Cuidador',     rating: 4.9, precio: '15.000', color: '#0891B2' },
-];
+function colorPorId(id) {
+  return AVATAR_COLORS[id % AVATAR_COLORS.length];
+}
 
-// ─── 2. COMPONENTE: CHIP DE CATEGORÍA ────────────────────────────────────────
-// Un botón pequeño tipo pastilla para filtrar por oficio.
-// active=true → fondo verde. active=false → fondo gris claro.
+function inicialesDe(nombre) {
+  if (!nombre) return '?';
+  const partes = nombre.trim().split(' ');
+  return partes.length >= 2
+    ? partes[0][0].toUpperCase() + partes[1][0].toUpperCase()
+    : partes[0][0].toUpperCase();
+}
 
 function CategoryChip({ label, active, onPress }) {
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.75}
-      style={[styles.chip, active ? styles.chipActivo : styles.chipInactivo]}
-    >
+    <TouchableOpacity onPress={onPress} activeOpacity={0.75}
+      style={[styles.chip, active ? styles.chipActivo : styles.chipInactivo]}>
       <Text style={[styles.chipTexto, active ? styles.chipTextoActivo : styles.chipTextoInactivo]}>
         {label}
       </Text>
@@ -42,198 +56,188 @@ function CategoryChip({ label, active, onPress }) {
   );
 }
 
-// ─── 3. COMPONENTE: TARJETA DE TRABAJADOR ────────────────────────────────────
-// Muestra los datos de un trabajador en una tarjeta
-
-function WorkerCard({ worker, onPress }) {
+function WorkerCard({ oficio, onPress }) {
+  const color = colorPorId(oficio.trabajadorId);
+  const iniciales = inicialesDe(oficio.nombreTrabajador);
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.card}>
-
-      {/* Avatar circular con las iniciales del nombre */}
-      <View style={[styles.avatar, { backgroundColor: worker.color }]}>
-        <Text style={styles.avatarTexto}>{worker.iniciales}</Text>
+      <View style={[styles.avatar, { backgroundColor: color }]}>
+        <Text style={styles.avatarTexto}>{iniciales}</Text>
       </View>
-
-      {/* Nombre, oficio y rating */}
       <View style={styles.cardInfo}>
-        <Text style={styles.cardNombre}>{worker.nombre}</Text>
-        <Text style={styles.cardOficio}>{worker.oficio}</Text>
-        <View style={styles.ratingFila}>
-          <Text style={styles.estrella}>★</Text>
-          <Text style={styles.ratingTexto}>{worker.rating}</Text>
-        </View>
+        <Text style={styles.cardNombre}>{oficio.nombreTrabajador ?? 'Técnico'}</Text>
+        <Text style={styles.cardOficio}>{oficio.especialidad}</Text>
+        <Text style={styles.cardPrecio}>Desde ${oficio.tarifaServicioBase?.toLocaleString()}</Text>
       </View>
-
-      {/* Precio mínimo alineado a la derecha */}
-      <View style={styles.precioBloque}>
-        <Text style={styles.precioDesde}>Desde</Text>
-        <Text style={styles.precio}>${worker.precio}</Text>
+      <View style={styles.cardRating}>
+        <Text style={styles.ratingTexto}>★ {oficio.promedioCalificacion?.toFixed(1) ?? 'N/A'}</Text>
       </View>
-
     </TouchableOpacity>
   );
 }
 
-// ─── 4. PANTALLA PRINCIPAL ───────────────────────────────────────────────────
-
 export default function HomeScreen({ navigation }) {
+  const [oficios, setOficios]             = useState([]);
+  const [busqueda, setBusqueda]           = useState('');
   const [categoriaActiva, setCategoriaActiva] = useState('Todos');
-  const [busqueda, setBusqueda] = useState('');
+  const [cargando, setCargando]           = useState(true);
+  const [ubicacion, setUbicacion]         = useState(null);
+  const [errorUbicacion, setErrorUbicacion] = useState(false);
 
-  // Filtra la lista según categoría seleccionada y texto del buscador
-  const trabajadoresFiltrados = TRABAJADORES.filter(t => {
-    const matchCategoria = categoriaActiva === 'Todos' || t.oficio === categoriaActiva;
-    const matchBusqueda  = t.nombre.toLowerCase().includes(busqueda.toLowerCase())
-                        || t.oficio.toLowerCase().includes(busqueda.toLowerCase());
-    return matchCategoria && matchBusqueda;
+  // useFocusEffect: recarga los técnicos cada vez que el usuario vuelve a esta pestaña,
+  // por ejemplo después de calificar a un trabajador para que el rating actualizado sea visible.
+  useFocusEffect(useCallback(() => {
+    if (ubicacion) {
+      cargarOficios(ubicacion.latitude, ubicacion.longitude);
+    } else {
+      pedirUbicacionYCargar();
+    }
+  }, [ubicacion]));
+
+  const pedirUbicacionYCargar = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      setErrorUbicacion(true);
+      setCargando(false);
+      return;
+    }
+    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    setUbicacion(loc.coords);
+    await cargarOficios(loc.coords.latitude, loc.coords.longitude);
+  };
+
+  const cargarOficios = async (lat, lon, categoria = categoriaActiva) => {
+    setCargando(true);
+    try {
+      const token = await getToken();
+      const especialidad = categoria !== 'Todos' ? categoria : undefined;
+      const params = { latitud: lat, longitud: lon, radioKm: 10, ...(especialidad && { especialidad }) };
+      const res = await axios.get(`${GATEWAY_URL}/api/oficios/mapa`, {
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setOficios(res.data);
+    } catch {
+      Alert.alert('Error', 'No se pudieron cargar los técnicos.');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  // Filtrado local sobre la lista ya cargada del backend
+  // (la búsqueda por texto y las categorías se aplican en el cliente para evitar llamadas extra)
+  const oficiosFiltrados = oficios.filter(o => {
+    const matchBusqueda = !busqueda ||
+      o.nombreTrabajador?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      o.especialidad?.toLowerCase().includes(busqueda.toLowerCase());
+    const matchCategoria = categoriaActiva === 'Todos' ||
+      o.especialidad?.toLowerCase().includes(categoriaActiva.toLowerCase());
+    return matchBusqueda && matchCategoria;
   });
+
+  if (errorUbicacion) {
+    return (
+      <SafeAreaView style={styles.centrado}>
+        <Ionicons name="location-off-outline" size={48} color={COLORS.textMuted} />
+        <Text style={styles.errorTexto}>Necesitamos tu ubicación para mostrarte técnicos cercanos.</Text>
+        <TouchableOpacity style={styles.btnConfig} onPress={() => Linking.openSettings()}>
+          <Text style={styles.btnConfigTexto}>Abrir configuración</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.pantalla}>
-      <StatusBar barStyle="light-content" backgroundColor="#15803D" />
-
-      <ScrollView showsVerticalScrollIndicator={false}>
-
-        {/* ── HEADER CON GRADIENTE ── */}
-        <LinearGradient
-          colors={['#41836c', '#70eacb', '#4ADE80']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          <Text style={styles.headerSaludo}>Bienvenido a Worki</Text>
-          <Text style={styles.headerTitulo}>¿Qué servicio{'\n'}necesitas hoy?</Text>
-
-          {/* Buscador */}
-          <View style={styles.buscador}>
-            <Text style={styles.buscadorIcono}>🔍</Text>
-            <TextInput
-              style={styles.buscadorInput}
-              placeholder="Buscar electricista, gasfiter..."
-              placeholderTextColor="#9CA3AF"
-              value={busqueda}
-              onChangeText={setBusqueda}
-            />
-          </View>
-        </LinearGradient>
-
-        {/* ── CATEGORÍAS ── */}
-        <View style={styles.seccion}>
-          <Text style={styles.seccionTitulo}>Categorías</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {CATEGORIAS.map(cat => (
-              <CategoryChip
-                key={cat}
-                label={cat}
-                active={cat === categoriaActiva}
-                onPress={() => setCategoriaActiva(cat)}
-              />
-            ))}
-          </ScrollView>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.header}>
+        <Text style={styles.headerTitulo}>Worki</Text>
+        <Text style={styles.headerSub}>Técnicos cerca de ti</Text>
+        <View style={styles.buscadorContainer}>
+          <Ionicons name="search-outline" size={18} color={COLORS.textSecondary} style={{ marginLeft: 12 }} />
+          <TextInput
+            style={styles.buscador}
+            placeholder="Buscar técnico o servicio..."
+            placeholderTextColor={COLORS.textMuted}
+            value={busqueda}
+            onChangeText={setBusqueda}
+          />
         </View>
+      </LinearGradient>
 
-        {/* ── LISTA DE TRABAJADORES ── */}
-        <View style={styles.seccion}>
-          <Text style={styles.seccionTitulo}>Trabajadores</Text>
-
-          {trabajadoresFiltrados.length === 0
-            ? <Text style={styles.sinResultados}>Sin resultados para "{busqueda}"</Text>
-            : trabajadoresFiltrados.map(w => (
-                <WorkerCard
-                  key={w.id}
-                  worker={w}
-                  onPress={() => navigation.navigate('PerfilTecnico', { worker: w })}
-                />
-              ))
-          }
-        </View>
-
-        <View style={{ height: 32 }} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        style={styles.categoriasScroll} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+        {CATEGORIAS.map(cat => (
+          <CategoryChip key={cat} label={cat} active={categoriaActiva === cat}
+            onPress={() => {
+              setCategoriaActiva(cat);
+              if (ubicacion) cargarOficios(ubicacion.latitude, ubicacion.longitude, cat);
+            }} />
+        ))}
       </ScrollView>
+
+      {cargando ? (
+        <View style={styles.centrado}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={{ color: COLORS.textSecondary, marginTop: 8 }}>Buscando técnicos...</Text>
+        </View>
+      ) : oficiosFiltrados.length === 0 ? (
+        <View style={styles.centrado}>
+          <Ionicons name="people-outline" size={48} color={COLORS.textMuted} />
+          <Text style={styles.errorTexto}>No hay técnicos disponibles en tu zona.</Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={{ padding: 16 }}>
+          <Text style={styles.seccionTitulo}>
+            {oficiosFiltrados.length} técnico{oficiosFiltrados.length !== 1 ? 's' : ''} disponible{oficiosFiltrados.length !== 1 ? 's' : ''}
+          </Text>
+          {oficiosFiltrados.map(oficio => (
+            <WorkerCard
+              key={oficio.id}
+              oficio={oficio}
+              onPress={() => navigation.navigate('PerfilTecnico', { oficio })}
+            />
+          ))}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
-// ─── 5. ESTILOS ───────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-
-  pantalla: { flex: 1, backgroundColor: '#F9FAFB' },
-
-  // Header
-  header: {
-    paddingTop: 24,
-    paddingBottom: 36,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+  pantalla: { flex: 1, backgroundColor: COLORS.background },
+  header: { paddingTop: 8, paddingBottom: 16, paddingHorizontal: 16 },
+  headerTitulo: { color: COLORS.surface, fontSize: 26, fontWeight: '800' },
+  headerSub: { color: COLORS.primaryBorder, fontSize: 13, marginBottom: 12 },
+  buscadorContainer: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.surface, borderRadius: 12, height: 44,
   },
-  headerSaludo: { color: '#DCFCE7', fontSize: 14, fontWeight: '500' },
-  headerTitulo: { color: '#FFFFFF', fontSize: 26, fontWeight: '800', marginTop: 6, lineHeight: 34 },
-
-  // Buscador
-  buscador: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    marginTop: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  buscadorIcono: { fontSize: 16, marginRight: 8 },
-  buscadorInput: { flex: 1, fontSize: 14, color: '#111827' },
-
-  // Secciones
-  seccion: { paddingHorizontal: 20, paddingTop: 24 },
-  seccionTitulo: { fontSize: 17, fontWeight: '700', color: '#111827', marginBottom: 12 },
-
-  // Chips
-  chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, marginRight: 8 },
-  chipActivo:   { backgroundColor: '#16A34A' },
-  chipInactivo: { backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' },
-  chipTexto:    { fontSize: 13, fontWeight: '600' },
-  chipTextoActivo:   { color: '#FFFFFF' },
-  chipTextoInactivo: { color: '#6B7280' },
-
-  // Cards
+  buscador: { flex: 1, paddingHorizontal: 10, fontSize: 14, color: COLORS.textPrimary },
+  categoriasScroll: { maxHeight: 56, flexGrow: 0 },
+  chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, marginRight: 8, borderWidth: 1 },
+  chipActivo: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipInactivo: { backgroundColor: COLORS.surface, borderColor: COLORS.border },
+  chipTexto: { fontSize: 13, fontWeight: '600' },
+  chipTextoActivo: { color: COLORS.surface },
+  chipTextoInactivo: { color: COLORS.textLight },
+  seccionTitulo: { fontSize: 12, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.5, marginBottom: 12 },
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.07,
-    shadowRadius: 4,
-    elevation: 2,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface,
+    borderRadius: 14, padding: 14, marginBottom: 10,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
   },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  avatarTexto: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  cardInfo:    { flex: 1 },
-  cardNombre:  { fontSize: 15, fontWeight: '700', color: '#111827' },
-  cardOficio:  { fontSize: 13, color: '#6B7280', marginTop: 2 },
-  ratingFila:  { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 3 },
-  estrella:    { color: '#FBBF24', fontSize: 13 },
-  ratingTexto: { fontSize: 12, fontWeight: '600', color: '#111827' },
-  precioBloque:{ alignItems: 'flex-end' },
-  precioDesde: { fontSize: 10, color: '#6B7280' },
-  precio:      { fontSize: 15, fontWeight: '700', color: '#16A34A' },
-
-  // Sin resultados
-  sinResultados: { color: '#9CA3AF', textAlign: 'center', marginTop: 24, fontSize: 14 },
+  avatar: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  avatarTexto: { color: COLORS.surface, fontSize: 16, fontWeight: '700' },
+  cardInfo: { flex: 1 },
+  cardNombre: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  cardOficio: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  cardPrecio: { fontSize: 12, color: COLORS.primary, marginTop: 3, fontWeight: '600' },
+  cardRating: { alignItems: 'center' },
+  ratingTexto: { fontSize: 14, fontWeight: '700', color: COLORS.warning },
+  centrado: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  errorTexto: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginTop: 12, lineHeight: 22 },
+  btnConfig: { marginTop: 16, backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 },
+  btnConfigTexto: { color: COLORS.surface, fontWeight: '700' },
 });
