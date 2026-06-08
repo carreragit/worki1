@@ -15,4 +15,4 @@
  *              no proxea conexiones WebSocket.
  */
 export const GATEWAY_URL = process.env.EXPO_PUBLIC_GATEWAY_URL ?? 'http://192.168.0.5:8080';
-export const WS_URL      = process.env.EXPO_PUBLIC_WS_URL      ?? 'ws://192.168.1.102:8084';
+export const WS_URL      = process.env.EXPO_PUBLIC_WS_URL      ?? 'ws://192.168.0.5:8084';
