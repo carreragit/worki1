@@ -1,0 +1,91 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # depends_on solo garantiza que el contenedor arrancó, no que MySQL esté listo.
+    # El healthcheck permite que los microservicios esperen hasta que MySQL
+    # acepte conexiones realmente antes de intentar conectarse.
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/worki_auth_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      USER_SERVICE_URL: http://user-service:8082
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure
+
+  user-service:
+    build:
+      context: ./backend
+      dockerfile: user-service/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/worki_user_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: on-failure
+
+  interaction-service:
+    build:
+      context: ./backend
+      dockerfile: interaction-service/Dockerfile
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/worki_interaction_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      USER_SERVICE_URL: http://user-service:8082
+    volumes:
+      - interaction_uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    restart: on-failure
+
+  gateway:
+    build:
+      context: ./backend
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:8081
+      USER_SERVICE_URL: http://user-service:8082
+      INTERACTION_SERVICE_URL: http://interaction-service:8084
+    depends_on:
+      - auth-service
+      - user-service
+      - interaction-service
+    restart: on-failure
+
+volumes:
+  mysql_data:
+  interaction_uploads:
