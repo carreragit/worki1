@@ -29,6 +29,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       USER_SERVICE_URL: http://user-service:8082
+      JAVA_OPTS: "-Xms64m -Xmx256m"
     depends_on:
       mysql:
         condition: service_healthy
@@ -44,6 +45,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/worki_user_db?createDatabaseIfNotExist=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JAVA_OPTS: "-Xms64m -Xmx256m"
     depends_on:
       mysql:
         condition: service_healthy
@@ -60,6 +62,7 @@ services:
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       USER_SERVICE_URL: http://user-service:8082
+      JAVA_OPTS: "-Xms64m -Xmx256m"
     volumes:
       - interaction_uploads:/app/uploads
     depends_on:
@@ -80,6 +83,7 @@ services:
       AUTH_SERVICE_URL: http://auth-service:8081
       USER_SERVICE_URL: http://user-service:8082
       INTERACTION_SERVICE_URL: http://interaction-service:8084
+      JAVA_OPTS: "-Xms64m -Xmx256m"
     depends_on:
       - auth-service
       - user-service
