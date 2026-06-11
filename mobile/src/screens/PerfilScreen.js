@@ -284,9 +284,6 @@ const styles = StyleSheet.create({
 
   btnActivar:      { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.primaryBorder, marginBottom: 16 },
   btnActivarTexto: { flex: 1, fontSize: 15, fontWeight: '600', color: COLORS.primary },
-  seccionTrabajador: { padding: 16, backgroundColor: COLORS.surface, borderRadius: 14, marginBottom: 16, borderWidth: 1, borderColor: COLORS.border },
-  seccionTitulo:   { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.8, marginBottom: 6 },
-  seccionInfo:     { fontSize: 14, color: COLORS.textPrimary, fontWeight: '600' },
 
   btnLogout:      { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, backgroundColor: COLORS.errorBg, borderRadius: 14, borderWidth: 1, borderColor: COLORS.errorBorder, marginTop: 4 },
   btnLogoutTexto: { fontSize: 15, fontWeight: '600', color: COLORS.error },
