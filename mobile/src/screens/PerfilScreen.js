@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../context/UserContext';
 import { logout } from '../services/authService';
-import { obtenerPerfilPorId, actualizarPerfil } from '../services/userService';
+import { obtenerPerfilPorId, actualizarPerfil, obtenerOficiosPorTrabajador } from '../services/userService';
 import { COLORS } from '../theme';
 
 export default function PerfilScreen({ navigation }) {
@@ -17,6 +17,7 @@ export default function PerfilScreen({ navigation }) {
   const [cargando, setCargando]     = useState(true);
   const [editando, setEditando]     = useState(false);
   const [guardando, setGuardando]   = useState(false);
+  const [navegando, setNavegando]   = useState(false);
   const [editForm, setEditForm]     = useState({ nombre: '', apellido: '', telefono: '', ciudad: '' });
 
   useEffect(() => {
@@ -67,6 +68,22 @@ export default function PerfilScreen({ navigation }) {
       Alert.alert('Error', 'No se pudo guardar el perfil.');
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const handleVerPerfilProfesional = async () => {
+    setNavegando(true);
+    try {
+      const oficios = await obtenerOficiosPorTrabajador(user.trabajadorId);
+      if (!oficios || oficios.length === 0) {
+        Alert.alert('Sin oficios', 'No tienes oficios registrados. Activa tu perfil primero.');
+        return;
+      }
+      navigation.navigate('PerfilTecnico', { oficio: oficios[0] });
+    } catch {
+      Alert.alert('Error', 'No se pudo cargar tu perfil profesional.');
+    } finally {
+      setNavegando(false);
     }
   };
 
@@ -207,10 +224,17 @@ export default function PerfilScreen({ navigation }) {
             <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
           </TouchableOpacity>
         ) : (
-          <View style={styles.seccionTrabajador}>
-            <Text style={styles.seccionTitulo}>PERFIL PROFESIONAL</Text>
-            <Text style={styles.seccionInfo}>ID Trabajador: #{user.trabajadorId}</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.btnActivar}
+            onPress={handleVerPerfilProfesional}
+            disabled={navegando}
+          >
+            <Ionicons name="briefcase-outline" size={20} color={COLORS.primary} />
+            <Text style={styles.btnActivarTexto}>
+              {navegando ? 'Cargando...' : 'Ver mi perfil profesional'}
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
+          </TouchableOpacity>
         )}
 
         {/* CERRAR SESIÓN */}
