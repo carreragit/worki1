@@ -55,12 +55,8 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
 
   useFocusEffect(useCallback(() => {
     cargarOficios();
-  }, []));
-
-  // Recarga reseñas cuando cambia el oficio seleccionado
-  useFocusEffect(useCallback(() => {
     cargarResenas(oficioSeleccionado.id);
-  }, [oficioSeleccionado.id]));
+  }, []));
 
   const cargarOficios = async () => {
     try {
