@@ -14,18 +14,18 @@ import { useUser } from '../context/UserContext';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, StatusBar, ActivityIndicator,
-  Switch, Alert, TextInput,
+  Alert, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { getToken } from '../services/authService';
 import { listarPorOficio } from '../services/calificacionService';
-import { actualizarOficio, cambiarActivoOficio, crearOficio } from '../services/userService';
+import { actualizarOficio, crearOficio } from '../services/userService';
 import { COLORS, AVATAR_COLORS } from '../theme';
 import { GATEWAY_URL } from '../services/config';
 
-const TABS = ['Información', 'Servicios', 'Reseñas'];
+const TABS = ['Información', 'Portafolio', 'Reseñas'];
 
 export default function PerfilTecnicoScreen({ route, navigation }) {
   const { oficio: oficioInicial } = route.params;
@@ -49,6 +49,11 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
   const [nuevoForm, setNuevoForm]                 = useState({
     especialidad: '', nombreServicio: '', descripcion: '', tarifaHora: '', tarifaBase: '',
   });
+
+  // Estado portafolio (subida de archivos es trabajo futuro)
+  const [certificados]                            = useState([]);
+  const [evidencias]                              = useState([]);
+
 
   const esMiPerfil = user.trabajadorId != null &&
     user.trabajadorId === oficioSeleccionado.trabajadorId;
@@ -128,15 +133,6 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
     }
   };
 
-  const handleToggleActivo = async (oficio) => {
-    try {
-      const actualizado = await cambiarActivoOficio(oficio.id, !oficio.activo);
-      setOficios(prev => prev.map(o => o.id === actualizado.id ? actualizado : o));
-      if (oficio.id === oficioSeleccionado.id) setOficioSeleccionado(actualizado);
-    } catch {
-      Alert.alert('Error', 'No se pudo cambiar el estado del oficio.');
-    }
-  };
 
   const handleAgregarOficio = async () => {
     if (!nuevoForm.especialidad.trim() || !nuevoForm.nombreServicio.trim()) {
@@ -244,6 +240,73 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
                   {!o.activo && <Text style={styles.dropdownInactivoLabel}>(inactivo)</Text>}
                 </TouchableOpacity>
               ))}
+              {esMiPerfil && (
+                <TouchableOpacity
+                  style={styles.dropdownItemAgregar}
+                  onPress={() => { setDropdownVisible(false); setMostrarFormNuevo(true); }}
+                >
+                  <Ionicons name="add-circle-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.dropdownItemAgregarTexto}>Agregar oficio</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {esMiPerfil && mostrarFormNuevo && (
+            <View style={styles.formNuevoOficio}>
+              <Text style={styles.seccionTitulo}>NUEVO OFICIO</Text>
+              <Text style={styles.inputLabel}>Especialidad *</Text>
+              <TextInput style={styles.textInput}
+                value={nuevoForm.especialidad}
+                onChangeText={v => setNuevoForm({ ...nuevoForm, especialidad: v })}
+                placeholder="Ej: Gasfiter"
+                placeholderTextColor={COLORS.textMuted}
+              />
+              <Text style={styles.inputLabel}>Nombre del servicio *</Text>
+              <TextInput style={styles.textInput}
+                value={nuevoForm.nombreServicio}
+                onChangeText={v => setNuevoForm({ ...nuevoForm, nombreServicio: v })}
+                placeholder="Ej: Reparación de cañerías"
+                placeholderTextColor={COLORS.textMuted}
+              />
+              <Text style={styles.inputLabel}>Descripción</Text>
+              <TextInput style={[styles.textInput, { height: 70 }]}
+                value={nuevoForm.descripcion}
+                onChangeText={v => setNuevoForm({ ...nuevoForm, descripcion: v })}
+                multiline textAlignVertical="top"
+                placeholder="Describe el servicio..."
+                placeholderTextColor={COLORS.textMuted}
+              />
+              <View style={styles.dosCampos}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>Tarifa hora ($)</Text>
+                  <TextInput style={styles.textInput}
+                    value={nuevoForm.tarifaHora}
+                    onChangeText={v => setNuevoForm({ ...nuevoForm, tarifaHora: v })}
+                    keyboardType="numeric" placeholder="0"
+                    placeholderTextColor={COLORS.textMuted}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>Tarifa base ($)</Text>
+                  <TextInput style={styles.textInput}
+                    value={nuevoForm.tarifaBase}
+                    onChangeText={v => setNuevoForm({ ...nuevoForm, tarifaBase: v })}
+                    keyboardType="numeric" placeholder="0"
+                    placeholderTextColor={COLORS.textMuted}
+                  />
+                </View>
+              </View>
+              <View style={styles.formAcciones}>
+                <TouchableOpacity style={styles.btnGuardar} onPress={handleAgregarOficio} disabled={guardandoNuevo}>
+                  {guardandoNuevo
+                    ? <ActivityIndicator color={COLORS.surface} />
+                    : <Text style={styles.btnGuardarTexto}>Guardar oficio</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.btnCancelar} onPress={() => setMostrarFormNuevo(false)} disabled={guardandoNuevo}>
+                  <Text style={styles.btnCancelarTexto}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>
@@ -352,93 +415,59 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
             </>
           )}
 
-          {/* TAB: SERVICIOS */}
-          {tabActivo === 'Servicios' && (
+          {/* TAB: PORTAFOLIO */}
+          {tabActivo === 'Portafolio' && (
             <>
+              {/* Sección certificados */}
               <View style={styles.serviciosTitulofila}>
-                <Text style={styles.seccionTitulo}>SERVICIOS OFRECIDOS</Text>
+                <Text style={styles.seccionTitulo}>CERTIFICADOS</Text>
                 {esMiPerfil && (
                   <TouchableOpacity
                     style={styles.btnAgregar}
-                    onPress={() => setMostrarFormNuevo(v => !v)}
+                    onPress={() => Alert.alert('Próximamente', 'La subida de archivos estará disponible pronto.')}
                   >
-                    <Ionicons name={mostrarFormNuevo ? 'close' : 'add'} size={18} color={COLORS.primary} />
-                    <Text style={styles.btnAgregarTexto}>{mostrarFormNuevo ? 'Cancelar' : 'Agregar'}</Text>
+                    <Ionicons name="add" size={18} color={COLORS.primary} />
+                    <Text style={styles.btnAgregarTexto}>Agregar</Text>
                   </TouchableOpacity>
                 )}
               </View>
-
-              {cargando ? <ActivityIndicator color={COLORS.primary} /> : oficios.map(o => (
-                <View key={o.id} style={styles.servicioItem}>
-                  <Ionicons name="checkmark-circle-outline" size={18} color={COLORS.primary} />
-                  <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={styles.servicioNombre}>{o.nombreServicio ?? o.especialidad}</Text>
-                    {o.tarifaServicioBase && (
-                      <Text style={styles.servicioTarifa}>Desde ${o.tarifaServicioBase.toLocaleString()}</Text>
-                    )}
+              {certificados.length === 0 ? (
+                <Text style={[styles.descripcionTexto, { marginBottom: 24 }]}>
+                  Sin certificados aún.
+                </Text>
+              ) : (
+                certificados.map(c => (
+                  <View key={c.id} style={styles.servicioItem}>
+                    <Ionicons name="document-outline" size={18} color={COLORS.primary} />
+                    <Text style={[styles.servicioNombre, { marginLeft: 10 }]}>{c.nombre}</Text>
                   </View>
-                  {esMiPerfil && (
-                    <Switch
-                      value={o.activo}
-                      onValueChange={() => handleToggleActivo(o)}
-                      trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
-                      thumbColor={o.activo ? COLORS.primary : COLORS.textMuted}
-                    />
-                  )}
-                </View>
-              ))}
+                ))
+              )}
 
-              {esMiPerfil && mostrarFormNuevo && (
-                <View style={styles.formNuevoOficio}>
-                  <Text style={styles.formNuevoTitulo}>NUEVO OFICIO</Text>
-                  <Text style={styles.inputLabel}>Especialidad *</Text>
-                  <TextInput style={styles.textInput}
-                    value={nuevoForm.especialidad}
-                    onChangeText={v => setNuevoForm({ ...nuevoForm, especialidad: v })}
-                    placeholder="Ej: Gasfiter"
-                    placeholderTextColor={COLORS.textMuted}
-                  />
-                  <Text style={styles.inputLabel}>Nombre del servicio *</Text>
-                  <TextInput style={styles.textInput}
-                    value={nuevoForm.nombreServicio}
-                    onChangeText={v => setNuevoForm({ ...nuevoForm, nombreServicio: v })}
-                    placeholder="Ej: Reparación de cañerías"
-                    placeholderTextColor={COLORS.textMuted}
-                  />
-                  <Text style={styles.inputLabel}>Descripción</Text>
-                  <TextInput style={[styles.textInput, { height: 70 }]}
-                    value={nuevoForm.descripcion}
-                    onChangeText={v => setNuevoForm({ ...nuevoForm, descripcion: v })}
-                    multiline textAlignVertical="top"
-                    placeholder="Describe el servicio..."
-                    placeholderTextColor={COLORS.textMuted}
-                  />
-                  <View style={styles.dosCampos}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.inputLabel}>Tarifa hora ($)</Text>
-                      <TextInput style={styles.textInput}
-                        value={nuevoForm.tarifaHora}
-                        onChangeText={v => setNuevoForm({ ...nuevoForm, tarifaHora: v })}
-                        keyboardType="numeric" placeholder="0"
-                        placeholderTextColor={COLORS.textMuted}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.inputLabel}>Tarifa base ($)</Text>
-                      <TextInput style={styles.textInput}
-                        value={nuevoForm.tarifaBase}
-                        onChangeText={v => setNuevoForm({ ...nuevoForm, tarifaBase: v })}
-                        keyboardType="numeric" placeholder="0"
-                        placeholderTextColor={COLORS.textMuted}
-                      />
-                    </View>
-                  </View>
-                  <TouchableOpacity style={styles.btnGuardar} onPress={handleAgregarOficio} disabled={guardandoNuevo}>
-                    {guardandoNuevo
-                      ? <ActivityIndicator color={COLORS.surface} />
-                      : <Text style={styles.btnGuardarTexto}>Guardar oficio</Text>}
+              {/* Sección evidencias */}
+              <View style={styles.serviciosTitulofila}>
+                <Text style={styles.seccionTitulo}>EVIDENCIAS DE TRABAJO</Text>
+                {esMiPerfil && (
+                  <TouchableOpacity
+                    style={styles.btnAgregar}
+                    onPress={() => Alert.alert('Próximamente', 'La subida de archivos estará disponible pronto.')}
+                  >
+                    <Ionicons name="add" size={18} color={COLORS.primary} />
+                    <Text style={styles.btnAgregarTexto}>Agregar</Text>
                   </TouchableOpacity>
-                </View>
+                )}
+              </View>
+              {evidencias.length === 0 ? (
+                <Text style={styles.descripcionTexto}>
+                  Sin evidencias aún.
+                </Text>
+              ) : (
+                evidencias.map(e => (
+                  <View key={e.id} style={styles.servicioItem}>
+                    <Ionicons name="image-outline" size={18} color={COLORS.primary} />
+                    <Text style={[styles.servicioNombre, { marginLeft: 10 }]}>{e.descripcion}</Text>
+                  </View>
+                ))
               )}
             </>
           )}
@@ -529,6 +558,9 @@ const styles = StyleSheet.create({
   dropdownItemTexto: { fontSize: 14, color: COLORS.textPrimary },
   dropdownItemTextoActivo: { color: COLORS.primary, fontWeight: '700' },
   dropdownInactivoLabel:   { fontSize: 11, color: COLORS.textMuted },
+  dropdownItemAgregar:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.borderLight },
+  dropdownItemAgregarTexto:{ fontSize: 14, color: COLORS.primary, fontWeight: '600' },
+  formNuevoOficio:         { marginHorizontal: 16, marginBottom: 8, padding: 14, backgroundColor: COLORS.background, borderRadius: 12, borderWidth: 1, borderColor: COLORS.borderLight, gap: 4 },
 
   tabsRow:     { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: COLORS.border, marginTop: 8 },
   tab:         { flex: 1, paddingVertical: 12, alignItems: 'center' },
@@ -564,10 +596,7 @@ const styles = StyleSheet.create({
   btnAgregar:    { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.primaryLight, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   btnAgregarTexto: { color: COLORS.primary, fontSize: 12, fontWeight: '700' },
 
-  formNuevoOficio: { marginTop: 16, padding: 14, backgroundColor: COLORS.background, borderRadius: 12, borderWidth: 1, borderColor: COLORS.borderLight, gap: 4 },
-  formNuevoTitulo: { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.8, marginBottom: 8 },
-
-  resenaCard:    { backgroundColor: COLORS.background, borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: COLORS.borderLight },
+resenaCard:    { backgroundColor: COLORS.background, borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: COLORS.borderLight },
   resenaHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   resenaNombre:  { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   resenaEstrellas: { fontSize: 14, color: COLORS.warning },
