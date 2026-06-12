@@ -28,14 +28,19 @@ public class CertificadoService {
     private final TrabajadorRepository trabajadorRepository;
     private final PerfilRepository perfilRepository;
 
-    public CertificadoResponseDTO subir(Long oficioId, MultipartFile archivo, String nombre) throws IOException {
+    public CertificadoResponseDTO subir(Long oficioId, MultipartFile archivo, String nombre) {
         if (archivo.getSize() > MAX_BYTES) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El certificado no puede superar 5MB");
         }
 
-        Files.createDirectories(Paths.get(UPLOADS_DIR));
-        String nombreArchivo = UUID.randomUUID() + "_" + archivo.getOriginalFilename();
-        Files.copy(archivo.getInputStream(), Paths.get(UPLOADS_DIR + nombreArchivo), StandardCopyOption.REPLACE_EXISTING);
+        String originalName = archivo.getOriginalFilename() != null ? archivo.getOriginalFilename() : "archivo";
+        String nombreArchivo = UUID.randomUUID() + "_" + originalName;
+        try {
+            Files.createDirectories(Paths.get(UPLOADS_DIR));
+            Files.copy(archivo.getInputStream(), Paths.get(UPLOADS_DIR + nombreArchivo), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al guardar el archivo");
+        }
 
         Certificado certificado = Certificado.builder()
                 .oficioId(oficioId)
@@ -58,6 +63,10 @@ public class CertificadoService {
 
         Certificado certificado = certificadoRepository.findById(certificadoId)
                 .orElseThrow(() -> new RuntimeException("Certificado no encontrado con id: " + certificadoId));
+
+        if (!certificado.getOficioId().equals(oficioId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Este certificado no pertenece al oficio indicado");
+        }
 
         try {
             String rutaRelativa = certificado.getUrl().replaceFirst("^/", "");
