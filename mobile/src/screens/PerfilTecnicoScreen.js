@@ -60,6 +60,14 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
   const [evidencias, setEvidencias]               = useState([]);
   const [cargandoPortafolio, setCargandoPortafolio] = useState(false);
 
+  // Estado subida certificado
+  const [pendingCert, setPendingCert]             = useState(null); // { uri, nombre }
+  const [subiendoCert, setSubiendoCert]           = useState(false);
+
+  // Estado subida evidencia
+  const [pendingEvid, setPendingEvid]             = useState(null); // { uri, descripcion }
+  const [subiendoEvid, setSubiendoEvid]           = useState(false);
+
 
   const esMiPerfil = user.trabajadorId != null &&
     user.trabajadorId === oficioSeleccionado.trabajadorId;
@@ -121,11 +129,26 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
       });
       if (resultado.canceled) return;
       const asset = resultado.assets[0];
-      const nombre = asset.name.replace(/\.[^/.]+$/, '');
-      await subirCertificado(oficioSeleccionado.id, asset.uri, nombre);
+      setPendingCert({ uri: asset.uri, nombre: asset.name.replace(/\.[^/.]+$/, '') });
+    } catch {
+      Alert.alert('Error', 'No se pudo abrir el selector de archivos.');
+    }
+  };
+
+  const handleConfirmarCertificado = async () => {
+    if (!pendingCert?.nombre?.trim()) {
+      Alert.alert('Nombre requerido', 'Ingresá un nombre para el certificado.');
+      return;
+    }
+    setSubiendoCert(true);
+    try {
+      await subirCertificado(oficioSeleccionado.id, pendingCert.uri, pendingCert.nombre.trim());
+      setPendingCert(null);
       await cargarPortafolio(oficioSeleccionado.id);
     } catch {
       Alert.alert('Error', 'No se pudo subir el certificado.');
+    } finally {
+      setSubiendoCert(false);
     }
   };
 
@@ -141,10 +164,22 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
         quality: 0.8,
       });
       if (resultado.canceled) return;
-      await subirEvidencia(oficioSeleccionado.id, resultado.assets[0].uri, null);
+      setPendingEvid({ uri: resultado.assets[0].uri, descripcion: '' });
+    } catch {
+      Alert.alert('Error', 'No se pudo abrir la galería.');
+    }
+  };
+
+  const handleConfirmarEvidencia = async () => {
+    setSubiendoEvid(true);
+    try {
+      await subirEvidencia(oficioSeleccionado.id, pendingEvid.uri, pendingEvid.descripcion.trim() || null);
+      setPendingEvid(null);
       await cargarPortafolio(oficioSeleccionado.id);
     } catch {
       Alert.alert('Error', 'No se pudo subir la evidencia.');
+    } finally {
+      setSubiendoEvid(false);
     }
   };
 
@@ -525,6 +560,26 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
                       </TouchableOpacity>
                     )}
                   </View>
+                  {pendingCert && (
+                    <View style={styles.formPending}>
+                      <Text style={styles.inputLabel}>Nombre del certificado *</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        value={pendingCert.nombre}
+                        onChangeText={v => setPendingCert({ ...pendingCert, nombre: v })}
+                        placeholder="Ej: Certificado de electricidad"
+                        placeholderTextColor={COLORS.textMuted}
+                      />
+                      <View style={styles.formAcciones}>
+                        <TouchableOpacity style={styles.btnGuardar} onPress={handleConfirmarCertificado} disabled={subiendoCert}>
+                          {subiendoCert ? <ActivityIndicator color={COLORS.surface} /> : <Text style={styles.btnGuardarTexto}>Subir</Text>}
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.btnCancelar} onPress={() => setPendingCert(null)} disabled={subiendoCert}>
+                          <Text style={styles.btnCancelarTexto}>Cancelar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
                   {certificados.length === 0 ? (
                     <Text style={[styles.descripcionTexto, { marginBottom: 24 }]}>Sin certificados aún.</Text>
                   ) : (
@@ -561,6 +616,27 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
                       </TouchableOpacity>
                     )}
                   </View>
+                  {pendingEvid && (
+                    <View style={styles.formPending}>
+                      <Image source={{ uri: pendingEvid.uri }} style={styles.pendingPreview} resizeMode="cover" />
+                      <Text style={styles.inputLabel}>Descripción (opcional)</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        value={pendingEvid.descripcion}
+                        onChangeText={v => setPendingEvid({ ...pendingEvid, descripcion: v })}
+                        placeholder="Ej: Instalación completada en cocina"
+                        placeholderTextColor={COLORS.textMuted}
+                      />
+                      <View style={styles.formAcciones}>
+                        <TouchableOpacity style={styles.btnGuardar} onPress={handleConfirmarEvidencia} disabled={subiendoEvid}>
+                          {subiendoEvid ? <ActivityIndicator color={COLORS.surface} /> : <Text style={styles.btnGuardarTexto}>Subir</Text>}
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.btnCancelar} onPress={() => setPendingEvid(null)} disabled={subiendoEvid}>
+                          <Text style={styles.btnCancelarTexto}>Cancelar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
                   {evidencias.length === 0 ? (
                     <Text style={styles.descripcionTexto}>Sin evidencias aún.</Text>
                   ) : (
@@ -722,6 +798,9 @@ resenaCard:    { backgroundColor: COLORS.background, borderRadius: 12, padding: 
   resenaEstrellas: { fontSize: 14, color: COLORS.warning },
   resenaTexto:   { fontSize: 13, color: COLORS.textSecondary, lineHeight: 20, marginBottom: 4 },
   resenaFecha:   { fontSize: 11, color: COLORS.textMuted },
+
+  formPending:          { backgroundColor: COLORS.background, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: COLORS.borderLight, marginBottom: 16, gap: 4 },
+  pendingPreview:       { width: '100%', height: 140, borderRadius: 10, marginBottom: 8 },
 
   evidenciasGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   evidenciaItem:        { width: '48%', position: 'relative' },
