@@ -1,7 +1,10 @@
 package com.worki.user;
 
 import org.junit.jupiter.api.*;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
@@ -32,6 +35,7 @@ class PerfilFlowTest {
     static Long   perfilId;
     static Long   trabajadorId;
     static Long   oficioId;
+    static Long   certificadoId;
 
     @BeforeAll
     static void setup() {
@@ -260,6 +264,57 @@ class PerfilFlowTest {
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isNotEmpty();
+    }
+
+    @Test @Order(13)
+    void subirCertificado_debeRetornar201() {
+        assertThat(oficioId).as("oficioId debe haberse obtenido en el test anterior").isNotNull();
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("archivo", new ByteArrayResource("contenido de prueba".getBytes()) {
+            @Override public String getFilename() { return "diploma.pdf"; }
+        });
+        body.add("nombre", "Diploma de prueba");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + jwt);
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+        ResponseEntity<Map> res = http.exchange(
+            GATEWAY + "/api/oficios/" + oficioId + "/certificados",
+            HttpMethod.POST, new HttpEntity<>(body, headers), Map.class
+        );
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(res.getBody()).containsKey("id");
+        assertThat(res.getBody().get("nombre")).isEqualTo("Diploma de prueba");
+        assertThat(res.getBody().get("url").toString()).startsWith("/uploads/");
+
+        certificadoId = Long.valueOf(res.getBody().get("id").toString());
+    }
+
+    @Test @Order(14)
+    void listarCertificados_debeRetornarListaConElSubido() {
+        assertThat(oficioId).isNotNull();
+
+        ResponseEntity<Object[]> res = http.exchange(
+            GATEWAY + "/api/oficios/" + oficioId + "/certificados",
+            HttpMethod.GET, authReq(null), Object[].class
+        );
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).isNotEmpty();
+    }
+
+    @Test @Order(15)
+    void eliminarCertificado_debeRetornar204() {
+        assertThat(certificadoId).isNotNull();
+
+        http.exchange(
+            GATEWAY + "/api/oficios/" + oficioId + "/certificados/" + certificadoId,
+            HttpMethod.DELETE, authReq(null), Void.class
+        );
+        // No exception = 204 success
     }
 
     static HttpEntity<Object> authReq(Object body) {
