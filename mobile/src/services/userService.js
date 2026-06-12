@@ -138,19 +138,3 @@ export const actualizarOficio = async (oficioId, data) => {
   const res = await axios.put(`${GATEWAY_URL}/api/oficios/${oficioId}`, data, { headers });
   return res.data;
 };
-
-/**
- * Activa o desactiva un oficio en búsquedas.
- *
- * @param {number} oficioId
- * @param {boolean} valor — true para activar, false para desactivar
- */
-export const cambiarActivoOficio = async (oficioId, valor) => {
-  const headers = await authHeaders();
-  const res = await axios.patch(
-    `${GATEWAY_URL}/api/oficios/${oficioId}/activo?valor=${valor}`,
-    {},
-    { headers }
-  );
-  return res.data;
-};
