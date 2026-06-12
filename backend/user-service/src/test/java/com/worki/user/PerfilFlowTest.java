@@ -262,7 +262,7 @@ class PerfilFlowTest {
         assertThat(res.getBody()).isNotEmpty();
     }
 
-static HttpEntity<Object> authReq(Object body) {
+    static HttpEntity<Object> authReq(Object body) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Authorization", "Bearer " + jwt);
