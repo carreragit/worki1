@@ -66,6 +66,18 @@ public class CalificacionController {
         return ResponseEntity.ok(calificacionService.listarPorSolicitud(solicitudId));
     }
 
+    // ─── GET /api/calificaciones/oficio/{oficioId} ────────────────────────────
+
+    /**
+     * Lista todas las calificaciones de un oficio específico.
+     * Usado por PerfilTecnicoScreen para mostrar reseñas filtradas por oficio.
+     */
+    @GetMapping("/oficio/{oficioId}")
+    public ResponseEntity<List<CalificacionResponse>> listarPorOficio(
+            @PathVariable Long oficioId) {
+        return ResponseEntity.ok(calificacionService.listarPorOficio(oficioId));
+    }
+
     // ─── GET /api/calificaciones/promedio/oficio/{oficioId} ──────────────────
 
     /**

@@ -41,6 +41,9 @@ function SolicitudCard({ solicitud, modoTrabajador, onPress }) {
           <Text style={[styles.estadoTexto, { color: estado.text }]}>{solicitud.estado}</Text>
         </View>
       </View>
+      {solicitud.nombreOficio && (
+        <Text style={styles.cardOficio}>{solicitud.nombreOficio}</Text>
+      )}
       <Text style={styles.cardDescripcion} numberOfLines={2}>
         {solicitud.descripcion ?? 'Sin descripción'}
       </Text>
@@ -159,6 +162,7 @@ const styles = StyleSheet.create({
   cardNombre: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
   estadoBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
   estadoTexto: { fontSize: 11, fontWeight: '700' },
+  cardOficio:      { fontSize: 12, fontWeight: '600', color: COLORS.primary, marginBottom: 4 },
   cardDescripcion: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 20, marginBottom: 8 },
   cardFecha: { fontSize: 11, color: COLORS.textMuted },
   centrado: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },

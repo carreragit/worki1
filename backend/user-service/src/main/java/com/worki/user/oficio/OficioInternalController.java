@@ -1,12 +1,12 @@
 package com.worki.user.oficio;
 
+import com.worki.user.oficio.dto.OficioResponseDTO;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 // Controlador exclusivo para comunicación interna entre microservicios.
-// Llamado por interaction-service tras cada calificación registrada.
 // No está expuesto en el gateway — solo accesible directamente por puerto 8082.
 @RestController
 @RequestMapping("/internal/oficios")
@@ -14,6 +14,13 @@ import org.springframework.web.bind.annotation.*;
 public class OficioInternalController {
 
     private final OficioService oficioService;
+
+    // GET /internal/oficios/{id}
+    // interaction-service lo llama para resolver el nombre del oficio en SolicitudResponse
+    @GetMapping("/{id}")
+    public ResponseEntity<OficioResponseDTO> obtenerPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(oficioService.obtenerPorId(id));
+    }
 
     // PATCH /internal/oficios/{id}/promedio
     // interaction-service llama este endpoint cada vez que se registra una calificación

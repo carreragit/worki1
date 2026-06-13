@@ -103,6 +103,7 @@ export default function DetalleSolicitudScreen({ route, navigation }) {
         {/* DATOS */}
         <View style={styles.seccion}>
           <FilaDato icono="person-outline"        label={modoTrabajador ? 'Cliente' : 'Técnico'} valor={nombreOtro} />
+          <FilaDato icono="briefcase-outline"     label="Servicio"       valor={solicitud.nombreOficio} />
           <FilaDato icono="document-text-outline" label="Descripción"    valor={solicitud.descripcion} />
           <FilaDato icono="calendar-outline"      label="Fecha preferida" valor={fechaFormateada} />
           <FilaDato icono="location-outline"      label="Dirección"      valor={solicitud.direccion} />

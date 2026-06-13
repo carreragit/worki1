@@ -114,3 +114,27 @@ export const crearOficio = async ({ trabajadorId, especialidad, nombreServicio, 
   );
   return res.data;
 };
+
+/**
+ * Obtiene todos los oficios de un trabajador.
+ * Usado en PerfilScreen para obtener el primer oficio antes de navegar.
+ *
+ * @param {number} trabajadorId
+ */
+export const obtenerOficiosPorTrabajador = async (trabajadorId) => {
+  const headers = await authHeaders();
+  const res = await axios.get(`${GATEWAY_URL}/api/oficios/trabajador/${trabajadorId}`, { headers });
+  return res.data;
+};
+
+/**
+ * Actualiza los datos de un oficio existente.
+ *
+ * @param {number} oficioId
+ * @param {object} data — { trabajadorId, especialidad, nombreServicio, descripcionServicio, tarifaHora, tarifaServicioBase }
+ */
+export const actualizarOficio = async (oficioId, data) => {
+  const headers = await authHeaders();
+  const res = await axios.put(`${GATEWAY_URL}/api/oficios/${oficioId}`, data, { headers });
+  return res.data;
+};

@@ -66,3 +66,18 @@ export const listarPorSolicitud = async (solicitudId) => {
   );
   return res.data;
 };
+
+/**
+ * Lista las calificaciones de un oficio específico.
+ * Usado en PerfilTecnicoScreen para mostrar reseñas del oficio seleccionado.
+ *
+ * @param {number} oficioId
+ */
+export const listarPorOficio = async (oficioId) => {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${GATEWAY_URL}/api/interacciones/calificaciones/oficio/${oficioId}`,
+    { headers }
+  );
+  return res.data;
+};

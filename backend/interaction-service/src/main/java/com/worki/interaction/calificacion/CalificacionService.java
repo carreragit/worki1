@@ -141,6 +141,13 @@ public class CalificacionService {
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
+    /** Lista todas las calificaciones de un oficio específico */
+    @Transactional(readOnly = true)
+    public List<CalificacionResponse> listarPorOficio(Long oficioId) {
+        return calificacionRepository.findByOficioId(oficioId)
+                .stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
     /**
      * Calcula el promedio de calificaciones de un oficio específico.
      * Endpoint clave: user-service lo puede llamar para actualizar

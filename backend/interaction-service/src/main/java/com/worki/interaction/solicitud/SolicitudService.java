@@ -123,6 +123,7 @@ public class SolicitudService {
                 // genérico para no romper la respuesta completa
                 .nombreCliente(resolverNombre(s.getClienteId()))
                 .nombreTrabajador(resolverNombreTrabajador(s.getTrabajadorId()))
+                .nombreOficio(resolverNombreOficio(s.getOficioId()))
                 .build();
     }
 
@@ -131,6 +132,14 @@ public class SolicitudService {
     private static class PerfilDto {
         private Long id;
         private String nombreCompleto;
+    }
+
+    // DTO mínimo para deserializar solo el nombre del oficio
+    @Data
+    private static class OficioDto {
+        private Long id;
+        private String nombreServicio;
+        private String especialidad;
     }
 
     // Resuelve el nombre del cliente usando su usuarioId (campo sub del JWT).
@@ -158,6 +167,20 @@ public class SolicitudService {
             return perfil != null ? perfil.getNombreCompleto() : "Técnico #" + trabajadorId;
         } catch (Exception e) {
             return "Técnico #" + trabajadorId;
+        }
+    }
+
+    private String resolverNombreOficio(Long oficioId) {
+        if (oficioId == null) return null;
+        try {
+            OficioDto oficio = restTemplate.getForObject(
+                userServiceUrl + "/internal/oficios/" + oficioId,
+                OficioDto.class
+            );
+            if (oficio == null) return null;
+            return oficio.getNombreServicio() != null ? oficio.getNombreServicio() : oficio.getEspecialidad();
+        } catch (Exception e) {
+            return null;
         }
     }
 }
