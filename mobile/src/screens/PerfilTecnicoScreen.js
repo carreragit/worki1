@@ -58,9 +58,12 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
   const esMiPerfil = user.trabajadorId != null &&
     user.trabajadorId === oficioSeleccionado.trabajadorId;
 
+  // useFocusEffect en lugar de useEffect para que los datos se recarguen cada vez
+  // que el usuario vuelve a esta pantalla (por ejemplo, tras calificar al técnico).
+  // Solo llamamos a cargarOficios aquí — las reseñas se cargan dentro de esa función
+  // una vez que sabemos cuál es el oficio actualizado (ver comentario en cargarOficios).
   useFocusEffect(useCallback(() => {
     cargarOficios();
-    cargarResenas(oficioSeleccionado.id);
   }, []));
 
   const cargarOficios = async () => {
@@ -71,9 +74,20 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setOficios(res.data);
-      // Mantiene el oficio seleccionado actualizado con datos frescos del backend
+      // Buscamos el oficio que el usuario tenía seleccionado en la lista recién
+      // descargada del backend para tener datos frescos (rating, reseñas, etc.).
+      // Si no se encuentra (fue eliminado), usamos el primero de la lista.
       const fresco = res.data.find(o => o.id === oficioSeleccionado.id) ?? res.data[0];
-      if (fresco) setOficioSeleccionado(fresco);
+      if (fresco) {
+        setOficioSeleccionado(fresco);
+        // Cargamos las reseñas DESPUÉS de conocer el id fresco para evitar dos problemas:
+        // 1. Race condition: si llamáramos cargarResenas en paralelo desde useFocusEffect,
+        //    podría ejecutarse antes de que este fetch termine y usar un id desactualizado.
+        // 2. Stale closure: el id capturado en useFocusEffect al montar el componente
+        //    nunca se actualiza aunque el usuario cambie de oficio, por eso no podemos
+        //    leerlo desde allá — lo leemos aquí donde ya tenemos el valor correcto.
+        cargarResenas(fresco.id);
+      }
     } catch {
       // Si falla, se mantiene el oficio inicial que vino por parámetro
     } finally {
