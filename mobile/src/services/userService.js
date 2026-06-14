@@ -138,3 +138,60 @@ export const actualizarOficio = async (oficioId, data) => {
   const res = await axios.put(`${GATEWAY_URL}/api/oficios/${oficioId}`, data, { headers });
   return res.data;
 };
+
+// ─── CERTIFICADOS ─────────────────────────────────────────────────────────────
+
+export const subirCertificado = async (oficioId, uri, nombre) => {
+  const token = await getToken();
+  const formData = new FormData();
+  const nombreArchivo = uri.split('/').pop();
+  const extension = nombreArchivo.split('.').pop().toLowerCase();
+  const tipo = extension === 'pdf' ? 'application/pdf' : 'image/' + extension;
+  formData.append('archivo', { uri, name: nombreArchivo, type: tipo });
+  formData.append('nombre', nombre);
+  const res = await axios.post(
+    `${GATEWAY_URL}/api/oficios/${oficioId}/certificados`,
+    formData,
+    { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+  );
+  return res.data;
+};
+
+export const listarCertificados = async (oficioId) => {
+  const headers = await authHeaders();
+  const res = await axios.get(`${GATEWAY_URL}/api/oficios/${oficioId}/certificados`, { headers });
+  return res.data;
+};
+
+export const eliminarCertificado = async (oficioId, certificadoId) => {
+  const headers = await authHeaders();
+  await axios.delete(`${GATEWAY_URL}/api/oficios/${oficioId}/certificados/${certificadoId}`, { headers });
+};
+
+// ─── EVIDENCIAS ───────────────────────────────────────────────────────────────
+
+export const subirEvidencia = async (oficioId, uri, descripcion) => {
+  const token = await getToken();
+  const formData = new FormData();
+  const nombreArchivo = uri.split('/').pop();
+  const extension = nombreArchivo.split('.').pop().toLowerCase();
+  formData.append('archivo', { uri, name: nombreArchivo, type: 'image/' + extension });
+  if (descripcion) formData.append('descripcion', descripcion);
+  const res = await axios.post(
+    `${GATEWAY_URL}/api/oficios/${oficioId}/evidencias`,
+    formData,
+    { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+  );
+  return res.data;
+};
+
+export const listarEvidencias = async (oficioId) => {
+  const headers = await authHeaders();
+  const res = await axios.get(`${GATEWAY_URL}/api/oficios/${oficioId}/evidencias`, { headers });
+  return res.data;
+};
+
+export const eliminarEvidencia = async (oficioId, evidenciaId) => {
+  const headers = await authHeaders();
+  await axios.delete(`${GATEWAY_URL}/api/oficios/${oficioId}/evidencias/${evidenciaId}`, { headers });
+};

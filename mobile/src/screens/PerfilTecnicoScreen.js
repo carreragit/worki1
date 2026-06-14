@@ -14,14 +14,20 @@ import { useUser } from '../context/UserContext';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, StatusBar, ActivityIndicator,
-  Alert, TextInput,
+  Alert, TextInput, Image, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { getToken } from '../services/authService';
 import { listarPorOficio } from '../services/calificacionService';
-import { actualizarOficio, crearOficio } from '../services/userService';
+import {
+  actualizarOficio, crearOficio,
+  listarCertificados, subirCertificado, eliminarCertificado,
+  listarEvidencias, subirEvidencia, eliminarEvidencia,
+} from '../services/userService';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { COLORS, AVATAR_COLORS } from '../theme';
 import { GATEWAY_URL } from '../services/config';
 
@@ -50,9 +56,17 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
     especialidad: '', nombreServicio: '', descripcion: '', tarifaHora: '', tarifaBase: '',
   });
 
-  // Estado portafolio (subida de archivos es trabajo futuro)
-  const [certificados]                            = useState([]);
-  const [evidencias]                              = useState([]);
+  const [certificados, setCertificados]           = useState([]);
+  const [evidencias, setEvidencias]               = useState([]);
+  const [cargandoPortafolio, setCargandoPortafolio] = useState(false);
+
+  // Estado subida certificado
+  const [pendingCert, setPendingCert]             = useState(null); // { uri, nombre }
+  const [subiendoCert, setSubiendoCert]           = useState(false);
+
+  // Estado subida evidencia
+  const [pendingEvid, setPendingEvid]             = useState(null); // { uri, descripcion }
+  const [subiendoEvid, setSubiendoEvid]           = useState(false);
 
 
   const esMiPerfil = user.trabajadorId != null &&
@@ -60,8 +74,8 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
 
   // useFocusEffect en lugar de useEffect para que los datos se recarguen cada vez
   // que el usuario vuelve a esta pantalla (por ejemplo, tras calificar al técnico).
-  // Solo llamamos a cargarOficios aquí — las reseñas se cargan dentro de esa función
-  // una vez que sabemos cuál es el oficio actualizado (ver comentario en cargarOficios).
+  // Solo llamamos a cargarOficios aquí — las reseñas y el portafolio se cargan
+  // dentro de esa función una vez que sabemos cuál es el oficio actualizado.
   useFocusEffect(useCallback(() => {
     cargarOficios();
   }, []));
@@ -80,13 +94,14 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
       const fresco = res.data.find(o => o.id === oficioSeleccionado.id) ?? res.data[0];
       if (fresco) {
         setOficioSeleccionado(fresco);
-        // Cargamos las reseñas DESPUÉS de conocer el id fresco para evitar dos problemas:
-        // 1. Race condition: si llamáramos cargarResenas en paralelo desde useFocusEffect,
-        //    podría ejecutarse antes de que este fetch termine y usar un id desactualizado.
+        // Cargamos reseñas y portafolio DESPUÉS de conocer el id fresco para evitar:
+        // 1. Race condition: si los llamáramos en paralelo desde useFocusEffect,
+        //    podrían ejecutarse antes de que este fetch termine y usar un id desactualizado.
         // 2. Stale closure: el id capturado en useFocusEffect al montar el componente
         //    nunca se actualiza aunque el usuario cambie de oficio, por eso no podemos
         //    leerlo desde allá — lo leemos aquí donde ya tenemos el valor correcto.
         cargarResenas(fresco.id);
+        cargarPortafolio(fresco.id);
       }
     } catch {
       // Si falla, se mantiene el oficio inicial que vino por parámetro
@@ -104,11 +119,124 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
     }
   };
 
+  const cargarPortafolio = async (oficioId) => {
+    setCargandoPortafolio(true);
+    try {
+      const [certs, evids] = await Promise.all([
+        listarCertificados(oficioId),
+        listarEvidencias(oficioId),
+      ]);
+      setCertificados(certs);
+      setEvidencias(evids);
+    } catch {
+      // portafolio vacío se muestra igual
+    } finally {
+      setCargandoPortafolio(false);
+    }
+  };
+
+  const handleAgregarCertificado = async () => {
+    try {
+      const resultado = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+      if (resultado.canceled) return;
+      const asset = resultado.assets[0];
+      setPendingCert({ uri: asset.uri, nombre: asset.name.replace(/\.[^/.]+$/, '') });
+    } catch {
+      Alert.alert('Error', 'No se pudo abrir el selector de archivos.');
+    }
+  };
+
+  const handleConfirmarCertificado = async () => {
+    if (!pendingCert?.nombre?.trim()) {
+      Alert.alert('Nombre requerido', 'Ingresá un nombre para el certificado.');
+      return;
+    }
+    setSubiendoCert(true);
+    try {
+      await subirCertificado(oficioSeleccionado.id, pendingCert.uri, pendingCert.nombre.trim());
+      setPendingCert(null);
+      await cargarPortafolio(oficioSeleccionado.id);
+    } catch {
+      Alert.alert('Error', 'No se pudo subir el certificado.');
+    } finally {
+      setSubiendoCert(false);
+    }
+  };
+
+  const handleAgregarEvidencia = async () => {
+    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permiso.granted) {
+      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para subir evidencias.');
+      return;
+    }
+    try {
+      const resultado = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+      });
+      if (resultado.canceled) return;
+      setPendingEvid({ uri: resultado.assets[0].uri, descripcion: '' });
+    } catch {
+      Alert.alert('Error', 'No se pudo abrir la galería.');
+    }
+  };
+
+  const handleConfirmarEvidencia = async () => {
+    setSubiendoEvid(true);
+    try {
+      await subirEvidencia(oficioSeleccionado.id, pendingEvid.uri, pendingEvid.descripcion.trim() || null);
+      setPendingEvid(null);
+      await cargarPortafolio(oficioSeleccionado.id);
+    } catch {
+      Alert.alert('Error', 'No se pudo subir la evidencia.');
+    } finally {
+      setSubiendoEvid(false);
+    }
+  };
+
+  const handleEliminarCertificado = (certificadoId) => {
+    Alert.alert('Eliminar certificado', '¿Estás seguro?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar', style: 'destructive',
+        onPress: async () => {
+          try {
+            await eliminarCertificado(oficioSeleccionado.id, certificadoId);
+            setCertificados(prev => prev.filter(c => c.id !== certificadoId));
+          } catch {
+            Alert.alert('Error', 'No se pudo eliminar el certificado.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleEliminarEvidencia = (evidenciaId) => {
+    Alert.alert('Eliminar evidencia', '¿Estás seguro?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar', style: 'destructive',
+        onPress: async () => {
+          try {
+            await eliminarEvidencia(oficioSeleccionado.id, evidenciaId);
+            setEvidencias(prev => prev.filter(e => e.id !== evidenciaId));
+          } catch {
+            Alert.alert('Error', 'No se pudo eliminar la evidencia.');
+          }
+        },
+      },
+    ]);
+  };
+
   const handleSeleccionarOficio = (oficio) => {
     setOficioSeleccionado(oficio);
     setDropdownVisible(false);
     setEditandoOficio(false);
     cargarResenas(oficio.id);
+    cargarPortafolio(oficio.id);
   };
 
   const handleEditarOficio = () => {
@@ -432,56 +560,124 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
           {/* TAB: PORTAFOLIO */}
           {tabActivo === 'Portafolio' && (
             <>
-              {/* Sección certificados */}
-              <View style={styles.serviciosTitulofila}>
-                <Text style={styles.seccionTitulo}>CERTIFICADOS</Text>
-                {esMiPerfil && (
-                  <TouchableOpacity
-                    style={styles.btnAgregar}
-                    onPress={() => Alert.alert('Próximamente', 'La subida de archivos estará disponible pronto.')}
-                  >
-                    <Ionicons name="add" size={18} color={COLORS.primary} />
-                    <Text style={styles.btnAgregarTexto}>Agregar</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              {certificados.length === 0 ? (
-                <Text style={[styles.descripcionTexto, { marginBottom: 24 }]}>
-                  Sin certificados aún.
-                </Text>
+              {cargandoPortafolio ? (
+                <ActivityIndicator color={COLORS.primary} style={{ marginTop: 20 }} />
               ) : (
-                certificados.map(c => (
-                  <View key={c.id} style={styles.servicioItem}>
-                    <Ionicons name="document-outline" size={18} color={COLORS.primary} />
-                    <Text style={[styles.servicioNombre, { marginLeft: 10 }]}>{c.nombre}</Text>
+                <>
+                  {/* Sección certificados */}
+                  <View style={styles.serviciosTitulofila}>
+                    <Text style={styles.seccionTitulo}>CERTIFICADOS</Text>
+                    {esMiPerfil && (
+                      <TouchableOpacity style={styles.btnAgregar} onPress={handleAgregarCertificado}>
+                        <Ionicons name="add" size={18} color={COLORS.primary} />
+                        <Text style={styles.btnAgregarTexto}>Agregar</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                ))
-              )}
+                  {pendingCert && (
+                    <View style={styles.formPending}>
+                      <Text style={styles.inputLabel}>Nombre del certificado *</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        value={pendingCert.nombre}
+                        onChangeText={v => setPendingCert({ ...pendingCert, nombre: v })}
+                        placeholder="Ej: Certificado de electricidad"
+                        placeholderTextColor={COLORS.textMuted}
+                      />
+                      <View style={styles.formAcciones}>
+                        <TouchableOpacity style={styles.btnGuardar} onPress={handleConfirmarCertificado} disabled={subiendoCert}>
+                          {subiendoCert ? <ActivityIndicator color={COLORS.surface} /> : <Text style={styles.btnGuardarTexto}>Subir</Text>}
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.btnCancelar} onPress={() => setPendingCert(null)} disabled={subiendoCert}>
+                          <Text style={styles.btnCancelarTexto}>Cancelar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                  {certificados.length === 0 ? (
+                    <Text style={[styles.descripcionTexto, { marginBottom: 24 }]}>Sin certificados aún.</Text>
+                  ) : (
+                    certificados.map(c => (
+                      <View key={c.id} style={styles.servicioItem}>
+                        <TouchableOpacity
+                          style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                          onPress={() => Linking.openURL(GATEWAY_URL + c.url)}
+                        >
+                          <Ionicons name="document-outline" size={18} color={COLORS.primary} />
+                          <View style={{ marginLeft: 10, flex: 1 }}>
+                            <Text style={styles.servicioNombre}>{c.nombre}</Text>
+                            <Text style={styles.resenaFecha}>
+                              {c.createdAt ? new Date(c.createdAt).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                        {esMiPerfil && (
+                          <TouchableOpacity onPress={() => handleEliminarCertificado(c.id)} style={{ padding: 6 }}>
+                            <Ionicons name="close-circle" size={20} color={COLORS.error} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ))
+                  )}
 
-              {/* Sección evidencias */}
-              <View style={styles.serviciosTitulofila}>
-                <Text style={styles.seccionTitulo}>EVIDENCIAS DE TRABAJO</Text>
-                {esMiPerfil && (
-                  <TouchableOpacity
-                    style={styles.btnAgregar}
-                    onPress={() => Alert.alert('Próximamente', 'La subida de archivos estará disponible pronto.')}
-                  >
-                    <Ionicons name="add" size={18} color={COLORS.primary} />
-                    <Text style={styles.btnAgregarTexto}>Agregar</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              {evidencias.length === 0 ? (
-                <Text style={styles.descripcionTexto}>
-                  Sin evidencias aún.
-                </Text>
-              ) : (
-                evidencias.map(e => (
-                  <View key={e.id} style={styles.servicioItem}>
-                    <Ionicons name="image-outline" size={18} color={COLORS.primary} />
-                    <Text style={[styles.servicioNombre, { marginLeft: 10 }]}>{e.descripcion}</Text>
+                  {/* Sección evidencias */}
+                  <View style={[styles.serviciosTitulofila, { marginTop: 24 }]}>
+                    <Text style={styles.seccionTitulo}>EVIDENCIAS DE TRABAJO</Text>
+                    {esMiPerfil && (
+                      <TouchableOpacity style={styles.btnAgregar} onPress={handleAgregarEvidencia}>
+                        <Ionicons name="add" size={18} color={COLORS.primary} />
+                        <Text style={styles.btnAgregarTexto}>Agregar</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                ))
+                  {pendingEvid && (
+                    <View style={styles.formPending}>
+                      <Image source={{ uri: pendingEvid.uri }} style={styles.pendingPreview} resizeMode="cover" />
+                      <Text style={styles.inputLabel}>Descripción (opcional)</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        value={pendingEvid.descripcion}
+                        onChangeText={v => setPendingEvid({ ...pendingEvid, descripcion: v })}
+                        placeholder="Ej: Instalación completada en cocina"
+                        placeholderTextColor={COLORS.textMuted}
+                      />
+                      <View style={styles.formAcciones}>
+                        <TouchableOpacity style={styles.btnGuardar} onPress={handleConfirmarEvidencia} disabled={subiendoEvid}>
+                          {subiendoEvid ? <ActivityIndicator color={COLORS.surface} /> : <Text style={styles.btnGuardarTexto}>Subir</Text>}
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.btnCancelar} onPress={() => setPendingEvid(null)} disabled={subiendoEvid}>
+                          <Text style={styles.btnCancelarTexto}>Cancelar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                  {evidencias.length === 0 ? (
+                    <Text style={styles.descripcionTexto}>Sin evidencias aún.</Text>
+                  ) : (
+                    <View style={styles.evidenciasGrid}>
+                      {evidencias.map(e => (
+                        <View key={e.id} style={styles.evidenciaItem}>
+                          <Image
+                            source={{ uri: GATEWAY_URL + e.url }}
+                            style={styles.evidenciaImagen}
+                            resizeMode="cover"
+                          />
+                          {e.descripcion ? (
+                            <Text style={styles.evidenciaDesc} numberOfLines={1}>{e.descripcion}</Text>
+                          ) : null}
+                          {esMiPerfil && (
+                            <TouchableOpacity
+                              onPress={() => handleEliminarEvidencia(e.id)}
+                              style={styles.evidenciaBtnEliminar}
+                            >
+                              <Ionicons name="close-circle" size={20} color={COLORS.error} />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </>
               )}
             </>
           )}
@@ -616,6 +812,15 @@ resenaCard:    { backgroundColor: COLORS.background, borderRadius: 12, padding: 
   resenaEstrellas: { fontSize: 14, color: COLORS.warning },
   resenaTexto:   { fontSize: 13, color: COLORS.textSecondary, lineHeight: 20, marginBottom: 4 },
   resenaFecha:   { fontSize: 11, color: COLORS.textMuted },
+
+  formPending:          { backgroundColor: COLORS.background, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: COLORS.borderLight, marginBottom: 16, gap: 4 },
+  pendingPreview:       { width: '100%', height: 140, borderRadius: 10, marginBottom: 8 },
+
+  evidenciasGrid:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  evidenciaItem:        { width: '48%', position: 'relative' },
+  evidenciaImagen:      { width: '100%', height: 120, borderRadius: 10 },
+  evidenciaDesc:        { fontSize: 11, color: COLORS.textMuted, marginTop: 4 },
+  evidenciaBtnEliminar: { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 10 },
 
   footer:        { paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.border, backgroundColor: COLORS.surface },
   btnContactar:  { backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
