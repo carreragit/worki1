@@ -16,13 +16,17 @@ public class CertificadoController {
 
     private final CertificadoService certificadoService;
 
+    // X-User-Id es inyectado por el Gateway tras validar el JWT.
+    // Se pasa al service para verificar que el usuario es dueño del oficio
+    // antes de permitir la subida — igual que en el endpoint de eliminar.
     @PostMapping
     public ResponseEntity<CertificadoResponseDTO> subir(
             @PathVariable Long oficioId,
             @RequestParam("archivo") MultipartFile archivo,
-            @RequestParam("nombre") String nombre) {
+            @RequestParam("nombre") String nombre,
+            @RequestHeader("X-User-Id") Long usuarioId) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(certificadoService.subir(oficioId, archivo, nombre));
+                .body(certificadoService.subir(oficioId, archivo, nombre, usuarioId));
     }
 
     @GetMapping

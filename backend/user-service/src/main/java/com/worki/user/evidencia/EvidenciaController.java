@@ -16,13 +16,17 @@ public class EvidenciaController {
 
     private final EvidenciaService evidenciaService;
 
+    // X-User-Id es inyectado por el Gateway tras validar el JWT.
+    // Se pasa al service para verificar que el usuario es dueño del oficio
+    // antes de permitir la subida — igual que en el endpoint de eliminar.
     @PostMapping
     public ResponseEntity<EvidenciaResponseDTO> subir(
             @PathVariable Long oficioId,
             @RequestParam("archivo") MultipartFile archivo,
-            @RequestParam(value = "descripcion", required = false) String descripcion) {
+            @RequestParam(value = "descripcion", required = false) String descripcion,
+            @RequestHeader("X-User-Id") Long usuarioId) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(evidenciaService.subir(oficioId, archivo, descripcion));
+                .body(evidenciaService.subir(oficioId, archivo, descripcion, usuarioId));
     }
 
     @GetMapping

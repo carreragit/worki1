@@ -28,7 +28,12 @@ public class EvidenciaService {
     private final TrabajadorRepository trabajadorRepository;
     private final PerfilRepository perfilRepository;
 
-    public EvidenciaResponseDTO subir(Long oficioId, MultipartFile archivo, String descripcion) {
+    public EvidenciaResponseDTO subir(Long oficioId, MultipartFile archivo, String descripcion, Long usuarioId) {
+        // Verifica que el usuario autenticado sea el dueño del oficio antes de guardar.
+        // Sin esta validación, cualquier usuario con JWT válido podría subir
+        // evidencias al perfil de otro trabajador llamando directamente al API.
+        verificarPropiedad(oficioId, usuarioId);
+
         if (archivo.getSize() > MAX_BYTES) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La evidencia no puede superar 10MB");
         }

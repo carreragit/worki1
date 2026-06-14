@@ -28,7 +28,12 @@ public class CertificadoService {
     private final TrabajadorRepository trabajadorRepository;
     private final PerfilRepository perfilRepository;
 
-    public CertificadoResponseDTO subir(Long oficioId, MultipartFile archivo, String nombre) {
+    public CertificadoResponseDTO subir(Long oficioId, MultipartFile archivo, String nombre, Long usuarioId) {
+        // Verifica que el usuario autenticado sea el dueño del oficio antes de guardar.
+        // Sin esta validación, cualquier usuario con JWT válido podría subir
+        // certificados al perfil de otro trabajador llamando directamente al API.
+        verificarPropiedad(oficioId, usuarioId);
+
         if (archivo.getSize() > MAX_BYTES) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El certificado no puede superar 5MB");
         }
