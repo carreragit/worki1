@@ -77,3 +77,23 @@ export const actualizarEstado = async (id, estado) => {
   );
   return res.data;
 };
+
+export const generarCodigo = async (id) => {
+  const token = await getToken();
+  const res = await axios.post(
+    `${GATEWAY_URL}/api/interacciones/solicitudes/${id}/generar-codigo`,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.data;
+};
+
+export const verificarCodigo = async (id, codigo) => {
+  const token = await getToken();
+  const res = await axios.post(
+    `${GATEWAY_URL}/api/interacciones/solicitudes/${id}/verificar-codigo`,
+    { codigo },
+    { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+  );
+  return res.data;
+};

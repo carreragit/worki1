@@ -11,6 +11,9 @@ public enum EstadoSolicitud {
     /** El trabajador aceptó la solicitud */
     ACEPTADA,
 
+    /** El técnico llegó y el código fue verificado; el servicio está en curso */
+    EN_PROCESO,
+
     /** El trabajador rechazó la solicitud */
     RECHAZADA,
 

@@ -17,11 +17,11 @@
 import { useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, Alert, ActivityIndicator,
+  StyleSheet, Alert, ActivityIndicator, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { actualizarEstado } from '../services/solicitudService';
+import { actualizarEstado, generarCodigo, verificarCodigo } from '../services/solicitudService';
 import { COLORS, ESTADO_COLORS, RATING_COLORS } from '../theme';
 
 function FilaDato({ icono, label, valor }) {
@@ -42,6 +42,9 @@ export default function DetalleSolicitudScreen({ route, navigation }) {
   const { solicitud: solicitudInicial, modoTrabajador } = route.params;
   const [solicitud, setSolicitud] = useState(solicitudInicial);
   const [cargando, setCargando]   = useState(false);
+  const [inputCodigo, setInputCodigo]       = useState('');
+  const [cargandoCodigo, setCargandoCodigo] = useState(false);
+  const [errCodigo, setErrCodigo]           = useState('');
 
   // Confirma la acción con un diálogo antes de llamar al backend
   const ejecutarAccion = async (nuevoEstado) => {
@@ -67,6 +70,33 @@ export default function DetalleSolicitudScreen({ route, navigation }) {
         }
       }
     ]);
+  };
+
+  const handleGenerarCodigo = async () => {
+    setCargandoCodigo(true);
+    try {
+      const actualizada = await generarCodigo(solicitud.id);
+      setSolicitud(actualizada);
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo generar el código.');
+    } finally {
+      setCargandoCodigo(false);
+    }
+  };
+
+  const handleVerificarCodigo = async () => {
+    if (!inputCodigo.trim()) { setErrCodigo('Ingresa el código'); return; }
+    setCargandoCodigo(true);
+    setErrCodigo('');
+    try {
+      const actualizada = await verificarCodigo(solicitud.id, inputCodigo.trim());
+      setSolicitud(actualizada);
+      setInputCodigo('');
+    } catch (e) {
+      setErrCodigo('Código incorrecto. Intenta de nuevo.');
+    } finally {
+      setCargandoCodigo(false);
+    }
   };
 
   // Colores del badge de estado; si llega un estado desconocido, se usa el estilo de PENDIENTE
@@ -126,6 +156,41 @@ export default function DetalleSolicitudScreen({ route, navigation }) {
             )}
             {modoTrabajador && solicitud.estado === 'ACEPTADA' && (
               <>
+                {!solicitud.codigoVerificacion ? (
+                  <TouchableOpacity style={styles.btnAceptar} onPress={handleGenerarCodigo} disabled={cargandoCodigo}>
+                    {cargandoCodigo
+                      ? <ActivityIndicator color={COLORS.surface} />
+                      : <Text style={styles.btnTexto}>Generar código de llegada</Text>
+                    }
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.codigoIngresoBloque}>
+                    <Text style={styles.codigoIngresoLabel}>Pídele al cliente que abra la app — te dirá el código</Text>
+                    <TextInput
+                      style={styles.codigoInput}
+                      value={inputCodigo}
+                      onChangeText={t => { setInputCodigo(t); setErrCodigo(''); }}
+                      keyboardType="numeric"
+                      maxLength={4}
+                      placeholder="0000"
+                      placeholderTextColor={COLORS.textMuted}
+                    />
+                    {errCodigo ? <Text style={styles.codigoError}>{errCodigo}</Text> : null}
+                    <TouchableOpacity style={styles.btnAceptar} onPress={handleVerificarCodigo} disabled={cargandoCodigo}>
+                      {cargandoCodigo
+                        ? <ActivityIndicator color={COLORS.surface} />
+                        : <Text style={styles.btnTexto}>Confirmar llegada</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                )}
+                <TouchableOpacity style={styles.btnCancelar} onPress={() => ejecutarAccion('CANCELADA')}>
+                  <Text style={[styles.btnTexto, { color: COLORS.textSecondary }]}>Cancelar</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {modoTrabajador && solicitud.estado === 'EN_PROCESO' && (
+              <>
                 <TouchableOpacity style={styles.btnAceptar} onPress={() => ejecutarAccion('COMPLETADA')}>
                   <Text style={styles.btnTexto}>Marcar completada</Text>
                 </TouchableOpacity>
@@ -134,13 +199,19 @@ export default function DetalleSolicitudScreen({ route, navigation }) {
                 </TouchableOpacity>
               </>
             )}
-            {!modoTrabajador && (solicitud.estado === 'PENDIENTE' || solicitud.estado === 'ACEPTADA') && (
+            {!modoTrabajador && solicitud.estado === 'ACEPTADA' && solicitud.codigoVerificacion && (
+              <View style={styles.codigoBloque}>
+                <Text style={styles.codigoLabel}>Dile este código al técnico cuando llegue</Text>
+                <Text style={styles.codigoCodigo}>{solicitud.codigoVerificacion}</Text>
+              </View>
+            )}
+            {!modoTrabajador && (solicitud.estado === 'PENDIENTE' || solicitud.estado === 'ACEPTADA' || solicitud.estado === 'EN_PROCESO') && (
               <TouchableOpacity style={styles.btnCancelar} onPress={() => ejecutarAccion('CANCELADA')}>
                 <Text style={[styles.btnTexto, { color: COLORS.textSecondary }]}>Cancelar solicitud</Text>
               </TouchableOpacity>
             )}
-            {/* Botón chat: disponible para ambos cuando la solicitud está ACEPTADA (Task 2) */}
-            {solicitud.estado === 'ACEPTADA' && (
+            {/* Botón chat: disponible para ambos cuando la solicitud está ACEPTADA o EN_PROCESO */}
+            {(solicitud.estado === 'ACEPTADA' || solicitud.estado === 'EN_PROCESO') && (
               <TouchableOpacity
                 style={styles.btnChat}
                 onPress={() => navigation.navigate('Chat', { solicitud })}
@@ -191,7 +262,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: RATING_COLORS.border,
   },
   btnCalificarTexto: { fontSize: 15, fontWeight: '700', color: RATING_COLORS.text },
-  // Estilos para el botón de chat (Task 2)
+  codigoBloque: { backgroundColor: '#F5F3FF', borderRadius: 14, padding: 20, alignItems: 'center', borderWidth: 1, borderColor: '#DDD6FE' },
+  codigoLabel: { fontSize: 13, color: '#5B21B6', fontWeight: '600', marginBottom: 12, textAlign: 'center' },
+  codigoCodigo: { fontSize: 52, fontWeight: '900', color: '#4C1D95', letterSpacing: 10 },
+  codigoIngresoBloque: { backgroundColor: COLORS.surfaceAlt, borderRadius: 14, padding: 16, gap: 10 },
+  codigoIngresoLabel: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center' },
+  codigoInput: { backgroundColor: COLORS.surface, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, fontSize: 28, fontWeight: '700', textAlign: 'center', paddingVertical: 12, color: COLORS.textPrimary, letterSpacing: 8 },
+  codigoError: { fontSize: 12, color: COLORS.error, textAlign: 'center' },
   btnChat: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: COLORS.infoBg, borderRadius: 14, paddingVertical: 14,
