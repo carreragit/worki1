@@ -65,6 +65,7 @@ services:
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       USER_SERVICE_URL: http://user-service:8082
+      JWT_SECRET: ${JWT_SECRET}
       JAVA_OPTS: "-Xms64m -Xmx256m"
     volumes:
       - interaction_uploads:/app/uploads
