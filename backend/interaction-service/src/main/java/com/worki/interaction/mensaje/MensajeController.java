@@ -8,6 +8,7 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
@@ -28,7 +29,11 @@ public class MensajeController {
     @SendTo("/topic/chat/{solicitudId}")
     public MensajeResponse enviarMensaje(
             @DestinationVariable Long solicitudId,
-            @Payload EnviarMensajeRequest request) {
+            @Payload EnviarMensajeRequest request,
+            SimpMessageHeaderAccessor headerAccessor) {
+
+        Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
+        request.setRemitenteId(userId);
         return mensajeService.guardarMensaje(solicitudId, request);
     }
 
