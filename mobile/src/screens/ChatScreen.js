@@ -163,7 +163,7 @@ export default function ChatScreen({ route, navigation }) {
         {item.tipo === 'IMAGEN' ? (
           // Las imágenes se cargan desde la URL del servidor
           <Image
-            source={{ uri: `${WS_URL}${item.contenido}` }}
+            source={{ uri: `${WS_URL.replace(/^ws/, 'http')}${item.contenido}` }}
             style={styles.imagenMensaje}
             resizeMode="cover"
           />
