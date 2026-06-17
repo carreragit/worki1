@@ -25,14 +25,11 @@ public class MensajeService {
     @Value("${user-service.url}")
     private String userServiceUrl;
 
-    // Guarda el mensaje y lo devuelve enriquecido con el nombre del remitente.
-    // Valida que la solicitud esté ACEPTADA antes de permitir mensajes.
     public MensajeResponse guardarMensaje(Long solicitudId, EnviarMensajeRequest request) {
-        // Solo se puede chatear en solicitudes activas (estado ACEPTADA)
         solicitudRepository.findById(solicitudId).ifPresent(s -> {
-            if (s.getEstado() != EstadoSolicitud.ACEPTADA) {
+            if (s.getEstado() != EstadoSolicitud.ACEPTADA && s.getEstado() != EstadoSolicitud.EN_PROCESO) {
                 throw new IllegalStateException(
-                    "El chat solo está disponible cuando la solicitud está ACEPTADA. Estado actual: " + s.getEstado());
+                    "El chat solo está disponible cuando la solicitud está ACEPTADA o EN_PROCESO. Estado actual: " + s.getEstado());
             }
         });
 
