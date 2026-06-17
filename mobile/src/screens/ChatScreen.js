@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Client } from '@stomp/stompjs';
 import { cargarHistorial, subirImagen, WS_URL } from '../services/mensajeService';
+import { getToken } from '../services/authService';
 import { useUser } from '../context/UserContext';
 import { COLORS } from '../theme';
 
@@ -58,7 +59,8 @@ export default function ChatScreen({ route, navigation }) {
 
   const inicializar = async () => {
     await cargarMensajes();
-    conectarWebSocket();
+    const token = await getToken();
+    conectarWebSocket(token);
   };
 
   // Carga el historial previo del chat antes de conectar el WebSocket
@@ -74,7 +76,7 @@ export default function ChatScreen({ route, navigation }) {
   };
 
   // Conecta el cliente STOMP y se suscribe al topic de esta solicitud
-  const conectarWebSocket = () => {
+  const conectarWebSocket = (token) => {
     const client = new Client({
       // React Native necesita webSocketFactory en lugar de brokerURL
       webSocketFactory: () => new WebSocket(STOMP_URL),
@@ -84,6 +86,8 @@ export default function ChatScreen({ route, navigation }) {
       // forzar frames binarios resuelve que el servidor no reciba el CONNECT.
       forceBinaryWSFrames: true,
       appendMissingNULLonIncoming: true,
+      // El servidor valida este token en el interceptor STOMP para autenticar al usuario
+      connectHeaders: { token },
       onConnect: () => {
         setConectado(true);
         // Suscribirse al canal de esta solicitud específica
