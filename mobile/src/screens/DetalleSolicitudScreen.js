@@ -14,7 +14,7 @@
  * e indica si el usuario está viendo la solicitud como cliente o como trabajador.
  * La solicitud se actualiza localmente tras cada acción sin necesidad de recargar.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
   StyleSheet, Alert, ActivityIndicator, TextInput,
@@ -22,6 +22,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { actualizarEstado, generarCodigo, verificarCodigo } from '../services/solicitudService';
+import { listarPorSolicitud } from '../services/calificacionService';
+import { useUser } from '../context/UserContext';
 import { COLORS, ESTADO_COLORS, RATING_COLORS } from '../theme';
 
 function FilaDato({ icono, label, valor }) {
@@ -45,6 +47,16 @@ export default function DetalleSolicitudScreen({ route, navigation }) {
   const [inputCodigo, setInputCodigo]       = useState('');
   const [cargandoCodigo, setCargandoCodigo] = useState(false);
   const [errCodigo, setErrCodigo]           = useState('');
+  const [yaCalifico, setYaCalifico]         = useState(false);
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (!modoTrabajador && solicitud.estado === 'COMPLETADA') {
+      listarPorSolicitud(solicitud.id)
+        .then(lista => setYaCalifico(lista.some(c => c.evaluadorId === user.userId)))
+        .catch(() => {});
+    }
+  }, [solicitud.estado]);
 
   // Confirma la acción con un diálogo antes de llamar al backend
   const ejecutarAccion = async (nuevoEstado) => {
@@ -220,8 +232,8 @@ export default function DetalleSolicitudScreen({ route, navigation }) {
                 <Text style={styles.btnChatTexto}>Abrir chat</Text>
               </TouchableOpacity>
             )}
-            {/* Botón calificar: solo para el cliente cuando la solicitud está COMPLETADA */}
-            {!modoTrabajador && solicitud.estado === 'COMPLETADA' && (
+            {/* Botón calificar: solo para el cliente cuando la solicitud está COMPLETADA y aún no calificó */}
+            {!modoTrabajador && solicitud.estado === 'COMPLETADA' && !yaCalifico && (
               <TouchableOpacity
                 style={styles.btnCalificar}
                 onPress={() => navigation.navigate('Calificar', { solicitud })}

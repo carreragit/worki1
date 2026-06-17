@@ -91,8 +91,9 @@ export function UserProvider({ children }) {
         if (token) {
           const decoded = jwtDecode(token);
           if (decoded.exp > Date.now() / 1000) {
-            // token válido: cargar datos del usuario y arrancar en Tabs
-            await initUser();
+            // token válido: intentar cargar datos, pero si el servicio falla
+            // igual se va a Tabs — el token es válido, no es un logout
+            try { await initUser(); } catch (_) {}
             setRutaInicial('Tabs');
             return;
           }

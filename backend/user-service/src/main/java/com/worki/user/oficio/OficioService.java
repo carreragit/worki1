@@ -98,7 +98,7 @@ public class OficioService {
                             t.getLatitud(), t.getLongitud());
                     // El trabajador aparece si está dentro del radio del cliente
                     // y el cliente está dentro del radio de cobertura del trabajador
-                    return distancia <= clienteRadioKm && distancia <= t.getRadioKm();
+                    return t.getRadioKm() != null && distancia <= clienteRadioKm && distancia <= t.getRadioKm();
                 })
                 .map(o -> {
                     OficioResponseDTO dto = oficioMapper.toDTO(o);
@@ -170,11 +170,12 @@ public class OficioService {
     // Se usa cuando se trae un solo oficio (obtenerPorId, obtenerPorTrabajador);
     // para listas grandes se prefiere la carga batch de obtenerParaMapa.
     private void enriquecerConPerfil(OficioResponseDTO dto) {
-        trabajadorRepository.findById(dto.getTrabajadorId()).ifPresent(t ->
+        trabajadorRepository.findById(dto.getTrabajadorId()).ifPresent(t -> {
+            dto.setRadioKm(t.getRadioKm());
             perfilRepository.findById(t.getPerfilId()).ifPresent(p -> {
                 dto.setNombreTrabajador(p.getNombreCompleto());
                 dto.setFotoPerfil(p.getFotoPerfil());
-            })
-        );
+            });
+        });
     }
 }

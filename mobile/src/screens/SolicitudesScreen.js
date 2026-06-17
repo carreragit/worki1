@@ -49,7 +49,7 @@ function SolicitudCard({ solicitud, modoTrabajador, onPress }) {
       </Text>
       <Text style={styles.cardFecha}>{fecha}</Text>
       {/* Indicador de chat activo cuando la solicitud está aceptada (Task 3) */}
-      {solicitud.estado === 'ACEPTADA' && (
+      {(solicitud.estado === 'ACEPTADA' || solicitud.estado === 'EN_PROCESO') && (
         <View style={styles.chatIndicador}>
           <Ionicons name="chatbubbles-outline" size={13} color={COLORS.info} />
           <Text style={styles.chatIndicadorTexto}>Chat activo</Text>
