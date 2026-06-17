@@ -53,6 +53,9 @@ public class Solicitud {
     @Column(name = "cliente_longitud")
     private Double clienteLongitud;
 
+    @Column(name = "codigo_verificacion", length = 6)
+    private String codigoVerificacion;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

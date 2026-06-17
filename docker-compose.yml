@@ -30,6 +30,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       USER_SERVICE_URL: http://user-service:8082
       GATEWAY_URL: ${GATEWAY_URL:-https://api.necesitoworki.com}
+      RESEND_API_KEY: ${RESEND_API_KEY}
       JAVA_OPTS: "-Xms64m -Xmx256m"
     depends_on:
       mysql:
@@ -47,6 +48,8 @@ services:
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       JAVA_OPTS: "-Xms64m -Xmx256m"
+    volumes:
+      - user_uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -63,6 +66,7 @@ services:
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       USER_SERVICE_URL: http://user-service:8082
+      JWT_SECRET: ${JWT_SECRET}
       JAVA_OPTS: "-Xms64m -Xmx256m"
     volumes:
       - interaction_uploads:/app/uploads
@@ -94,3 +98,4 @@ services:
 volumes:
   mysql_data:
   interaction_uploads:
+  user_uploads:

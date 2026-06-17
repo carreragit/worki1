@@ -21,7 +21,7 @@ public interface OficioRepository extends JpaRepository<Oficio, Long> {
 
     List<Oficio> findByActivoTrueAndEspecialidadContainingIgnoreCase(String especialidad);
 
-    // Desactiva todos los oficios de un trabajador de un golpe
+    // Desactiva todos los oficios de un trabajador 
     @Modifying
     @Transactional
     @Query("UPDATE Oficio o SET o.activo = false WHERE o.trabajadorId = :trabajadorId")

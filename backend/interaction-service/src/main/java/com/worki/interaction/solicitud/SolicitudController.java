@@ -3,6 +3,7 @@ package com.worki.interaction.solicitud;
 import com.worki.interaction.solicitud.dto.ActualizarEstadoRequest;
 import com.worki.interaction.solicitud.dto.CrearSolicitudRequest;
 import com.worki.interaction.solicitud.dto.SolicitudResponse;
+import com.worki.interaction.solicitud.dto.VerificarCodigoRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -51,5 +52,17 @@ public class SolicitudController {
             @PathVariable Long id,
             @Valid @RequestBody ActualizarEstadoRequest request) {
         return ResponseEntity.ok(solicitudService.actualizarEstado(id, request));
+    }
+
+    @PostMapping("/{id}/generar-codigo")
+    public ResponseEntity<SolicitudResponse> generarCodigo(@PathVariable Long id) {
+        return ResponseEntity.ok(solicitudService.generarCodigo(id));
+    }
+
+    @PostMapping("/{id}/verificar-codigo")
+    public ResponseEntity<SolicitudResponse> verificarCodigo(
+            @PathVariable Long id,
+            @RequestBody VerificarCodigoRequest request) {
+        return ResponseEntity.ok(solicitudService.verificarCodigo(id, request.getCodigo()));
     }
 }

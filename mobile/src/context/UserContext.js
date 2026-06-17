@@ -15,7 +15,7 @@
  *   - initUser()   llamar justo después de un login exitoso
  *   - clearUser() llamar al cerrar sesión para limpiar el estado
  */
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { getToken } from '../services/authService';
 import { obtenerPerfil, verificarTrabajador } from '../services/userService';
@@ -42,12 +42,9 @@ const EMPTY_USER = {
 // sin él, la app entera desaparecería de pantalla.
 export function UserProvider({ children }) {
 
-  // useState es un hook nativo de React que crea el estado del usuario.
-  // Retorna un array con dos valores: el valor actual del estado y la función para actualizarlo.
-  // Los destructuramos directamente en dos constantes: user (valor actual) y setUser (actualizador).
-  // Cuando setUser se llama, React redibuja automáticamente todas las pantallas
-  // que estén usando ese estado - algo que una variable normal no puede hacer.
   const [user, setUser] = useState(EMPTY_USER);
+  // null = todavía verificando, 'Login' o 'Tabs' una vez que se sabe
+  const [rutaInicial, setRutaInicial] = useState(null);
 
   // initUser es una función asíncrona guardada en una constante.
   // Dentro de un componente React se usa const en vez de function por convención,
@@ -87,6 +84,28 @@ export function UserProvider({ children }) {
     });
   };
 
+  useEffect(() => {
+    const verificarSesion = async () => {
+      try {
+        const token = await getToken();
+        if (token) {
+          const decoded = jwtDecode(token);
+          if (decoded.exp > Date.now() / 1000) {
+            // token válido: intentar cargar datos, pero si el servicio falla
+            // igual se va a Tabs — el token es válido, no es un logout
+            try { await initUser(); } catch (_) {}
+            setRutaInicial('Tabs');
+            return;
+          }
+        }
+      } catch (_) {
+        // token corrupto o error de red → ir a Login
+      }
+      setRutaInicial('Login');
+    };
+    verificarSesion();
+  }, []);
+
   // clearUser resetea el estado del usuario a vacío.
   // Se llama desde PerfilScreen al cerrar sesión.
   const clearUser = () => setUser(EMPTY_USER);
@@ -96,7 +115,7 @@ export function UserProvider({ children }) {
   // solo lo que esté aquí puede ser consumido por las pantallas con useUser().
   // {children} renderiza todo lo anidado dentro de <UserProvider> en App.js.
   return (
-    <UserContext.Provider value={{ user, setUser, initUser, clearUser }}>
+    <UserContext.Provider value={{ user, setUser, initUser, clearUser, rutaInicial }}>
       {children}
     </UserContext.Provider>
   );

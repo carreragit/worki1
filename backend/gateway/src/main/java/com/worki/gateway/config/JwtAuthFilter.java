@@ -28,6 +28,10 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             "/api/auth/reset-password"
     );
 
+    private static final List<String> PREFIJOS_PUBLICOS = List.of(
+            "/uploads/"
+    );
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
@@ -63,7 +67,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     }
 
     private boolean esRutaPublica(String path) {
-        return RUTAS_PUBLICAS.contains(path);
+        return RUTAS_PUBLICAS.contains(path) ||
+               PREFIJOS_PUBLICOS.stream().anyMatch(path::startsWith);
     }
 
     @Override

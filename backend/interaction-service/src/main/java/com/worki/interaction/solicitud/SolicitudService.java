@@ -28,10 +28,10 @@ public class SolicitudService {
         boolean yaExiste = (request.getOficioId() != null)
                 ? solicitudRepository.existsByClienteIdAndOficioIdAndEstadoIn(
                         clienteId, request.getOficioId(),
-                        List.of(EstadoSolicitud.PENDIENTE, EstadoSolicitud.ACEPTADA))
+                        List.of(EstadoSolicitud.PENDIENTE, EstadoSolicitud.ACEPTADA, EstadoSolicitud.EN_PROCESO))
                 : solicitudRepository.existsByClienteIdAndTrabajadorIdAndEstadoIn(
                         clienteId, request.getTrabajadorId(),
-                        List.of(EstadoSolicitud.PENDIENTE, EstadoSolicitud.ACEPTADA));
+                        List.of(EstadoSolicitud.PENDIENTE, EstadoSolicitud.ACEPTADA, EstadoSolicitud.EN_PROCESO));
 
         if (yaExiste) {
             throw new IllegalStateException(
@@ -76,6 +76,31 @@ public class SolicitudService {
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
+    public SolicitudResponse generarCodigo(Long id) {
+        Solicitud solicitud = buscarOFallar(id);
+        if (solicitud.getEstado() != EstadoSolicitud.ACEPTADA) {
+            throw new IllegalStateException("Solo se puede generar código cuando la solicitud está ACEPTADA");
+        }
+        solicitud.setCodigoVerificacion(String.format("%04d", new java.util.Random().nextInt(10000)));
+        return toResponse(solicitudRepository.save(solicitud));
+    }
+
+    public SolicitudResponse verificarCodigo(Long id, String codigo) {
+        Solicitud solicitud = buscarOFallar(id);
+        if (solicitud.getEstado() != EstadoSolicitud.ACEPTADA) {
+            throw new IllegalStateException("La solicitud no está en estado ACEPTADA");
+        }
+        if (solicitud.getCodigoVerificacion() == null) {
+            throw new IllegalStateException("No hay código generado para esta solicitud");
+        }
+        if (!solicitud.getCodigoVerificacion().equals(codigo)) {
+            throw new IllegalStateException("Código incorrecto");
+        }
+        solicitud.setEstado(EstadoSolicitud.EN_PROCESO);
+        solicitud.setCodigoVerificacion(null);
+        return toResponse(solicitudRepository.save(solicitud));
+    }
+
     public SolicitudResponse actualizarEstado(Long id, ActualizarEstadoRequest request) {
         Solicitud solicitud = buscarOFallar(id);
         validarTransicion(solicitud.getEstado(), request.getEstado());
@@ -95,6 +120,8 @@ public class SolicitudService {
                     || nuevo == EstadoSolicitud.RECHAZADA
                     || nuevo == EstadoSolicitud.CANCELADA;
             case ACEPTADA  -> nuevo == EstadoSolicitud.COMPLETADA
+                    || nuevo == EstadoSolicitud.CANCELADA;
+            case EN_PROCESO -> nuevo == EstadoSolicitud.COMPLETADA
                     || nuevo == EstadoSolicitud.CANCELADA;
             case RECHAZADA, COMPLETADA, CANCELADA -> false;
         };
@@ -123,6 +150,8 @@ public class SolicitudService {
                 // genérico para no romper la respuesta completa
                 .nombreCliente(resolverNombre(s.getClienteId()))
                 .nombreTrabajador(resolverNombreTrabajador(s.getTrabajadorId()))
+                .nombreOficio(resolverNombreOficio(s.getOficioId()))
+                .codigoVerificacion(s.getCodigoVerificacion())
                 .build();
     }
 
@@ -131,6 +160,14 @@ public class SolicitudService {
     private static class PerfilDto {
         private Long id;
         private String nombreCompleto;
+    }
+
+    // DTO mínimo para deserializar solo el nombre del oficio
+    @Data
+    private static class OficioDto {
+        private Long id;
+        private String nombreServicio;
+        private String especialidad;
     }
 
     // Resuelve el nombre del cliente usando su usuarioId (campo sub del JWT).
@@ -158,6 +195,20 @@ public class SolicitudService {
             return perfil != null ? perfil.getNombreCompleto() : "Técnico #" + trabajadorId;
         } catch (Exception e) {
             return "Técnico #" + trabajadorId;
+        }
+    }
+
+    private String resolverNombreOficio(Long oficioId) {
+        if (oficioId == null) return null;
+        try {
+            OficioDto oficio = restTemplate.getForObject(
+                userServiceUrl + "/internal/oficios/" + oficioId,
+                OficioDto.class
+            );
+            if (oficio == null) return null;
+            return oficio.getNombreServicio() != null ? oficio.getNombreServicio() : oficio.getEspecialidad();
+        } catch (Exception e) {
+            return null;
         }
     }
 }
