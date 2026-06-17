@@ -30,6 +30,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       USER_SERVICE_URL: http://user-service:8082
       GATEWAY_URL: ${GATEWAY_URL:-https://api.necesitoworki.com}
+      RESEND_API_KEY: ${RESEND_API_KEY}
       JAVA_OPTS: "-Xms64m -Xmx256m"
     depends_on:
       mysql:
