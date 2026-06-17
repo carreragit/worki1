@@ -3,6 +3,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 
 import { UserProvider, useUser } from './src/context/UserContext';
 import LoginScreen              from './src/screens/LoginScreen';
@@ -51,6 +52,7 @@ function AppNavigator() {
 export default function App() {
   return (
     <SafeAreaProvider>
+      <StatusBar style="auto" translucent backgroundColor="transparent" />
       <GestureHandlerRootView style={{ flex: 1 }}>
         <UserProvider>
           <AppNavigator />
