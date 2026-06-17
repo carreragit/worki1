@@ -27,4 +27,5 @@ public class SolicitudResponse {
     private String nombreCliente;
     private String nombreTrabajador;
     private String nombreOficio;
+    private String codigoVerificacion;
 }

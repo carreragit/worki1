@@ -48,6 +48,7 @@ export const AVATAR_COLORS = ['#16A34A', '#2563EB', '#9333EA', '#EA580C', '#0891
 export const ESTADO_COLORS = {
   PENDIENTE:  { bg: '#FEF3C7', text: '#92400E' },
   ACEPTADA:   { bg: '#DCFCE7', text: '#166534' },
+  EN_PROCESO: { bg: '#EDE9FE', text: '#5B21B6' },
   COMPLETADA: { bg: '#F0F9FF', text: '#0369A1' },
   RECHAZADA:  { bg: '#FEE2E2', text: '#991B1B' },
   CANCELADA:  { bg: '#F3F4F6', text: '#6B7280' },
