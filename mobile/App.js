@@ -5,7 +5,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import { Ionicons } from '@expo/vector-icons';
 
 import { UserProvider, useUser } from './src/context/UserContext';
 import LoginScreen              from './src/screens/LoginScreen';
@@ -28,8 +27,16 @@ function AppNavigator() {
 
   // Dispara la carga de la fuente Ionicons en segundo plano.
   // No bloqueamos el render — la app se muestra de inmediato y los iconos
-  // aparecen en cuanto la fuente descarga (necesario para el build de Cloudflare).
-  useFonts(Ionicons.font);
+  // aparecen en cuanto la fuente descarga.
+  //
+  // IMPORTANTE (build de Cloudflare): cargamos la fuente desde una copia propia
+  // en assets/fonts/ en vez de usar Ionicons.font. Ionicons.font apunta al .ttf
+  // dentro de node_modules, y Expo lo exporta a dist/assets/node_modules/...
+  // Cloudflare Pages NO publica ninguna ruta que contenga "node_modules"
+  // (la redirige a /), por lo que ese .ttf daba 404 en producción y los iconos
+  // se veían como cuadrados blancos. Sirviéndolo desde assets/fonts/ la ruta
+  // exportada queda fuera de node_modules y Cloudflare sí la publica.
+  useFonts({ Ionicons: require('./assets/fonts/Ionicons.ttf') });
 
   if (rutaInicial === null) {
     return (
