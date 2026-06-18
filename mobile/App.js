@@ -26,11 +26,10 @@ const Stack = createStackNavigator();
 function AppNavigator() {
   const { rutaInicial } = useUser();
 
-  // Precargamos la fuente de Ionicons antes de renderizar cualquier ícono.
-  // Sin esto, en el build estático de Cloudflare los iconos aparecen como cuadros vacíos
-  // porque el archivo .ttf no se ha descargado aún cuando el componente se pinta por primera vez.
-  const [fontsLoaded] = useFonts(Ionicons.font);
-  if (!fontsLoaded) return null;
+  // Dispara la carga de la fuente Ionicons en segundo plano.
+  // No bloqueamos el render — la app se muestra de inmediato y los iconos
+  // aparecen en cuanto la fuente descarga (necesario para el build de Cloudflare).
+  useFonts(Ionicons.font);
 
   if (rutaInicial === null) {
     return (
