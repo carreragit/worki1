@@ -25,9 +25,7 @@ const Stack = createStackNavigator();
 function AppNavigator() {
   const { rutaInicial } = useUser();
 
-  // Dispara la carga de la fuente Ionicons en segundo plano.
-  // No bloqueamos el render — la app se muestra de inmediato y los iconos
-  // aparecen en cuanto la fuente descarga.
+  // Carga de la fuente Ionicons.
   //
   // IMPORTANTE (build de Cloudflare): cargamos la fuente desde una copia propia
   // en assets/fonts/ en vez de usar Ionicons.font. Ionicons.font apunta al .ttf
@@ -36,9 +34,14 @@ function AppNavigator() {
   // (la redirige a /), por lo que ese .ttf daba 404 en producción y los iconos
   // se veían como cuadrados blancos. Sirviéndolo desde assets/fonts/ la ruta
   // exportada queda fuera de node_modules y Cloudflare sí la publica.
-  useFonts({ Ionicons: require('./assets/fonts/Ionicons.ttf') });
+  //
+  // Bloqueamos el primer render hasta que la fuente esté lista: en web, una
+  // pantalla que se pinta antes de que la fuente cargue deja los iconos en
+  // blanco y no se vuelve a renderizar (por eso la pantalla de Login inicial
+  // no mostraba iconos hasta navegar a otra pantalla).
+  const [fuentesListas] = useFonts({ Ionicons: require('./assets/fonts/Ionicons.ttf') });
 
-  if (rutaInicial === null) {
+  if (rutaInicial === null || !fuentesListas) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#4F46E5" />
