@@ -4,6 +4,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import { Ionicons } from '@expo/vector-icons';
 
 import { UserProvider, useUser } from './src/context/UserContext';
 import LoginScreen              from './src/screens/LoginScreen';
@@ -23,6 +25,12 @@ const Stack = createStackNavigator();
 // Separado en componente propio para poder usar useUser() dentro del UserProvider
 function AppNavigator() {
   const { rutaInicial } = useUser();
+
+  // Precargamos la fuente de Ionicons antes de renderizar cualquier ícono.
+  // Sin esto, en el build estático de Cloudflare los iconos aparecen como cuadros vacíos
+  // porque el archivo .ttf no se ha descargado aún cuando el componente se pinta por primera vez.
+  const [fontsLoaded] = useFonts(Ionicons.font);
+  if (!fontsLoaded) return null;
 
   if (rutaInicial === null) {
     return (
