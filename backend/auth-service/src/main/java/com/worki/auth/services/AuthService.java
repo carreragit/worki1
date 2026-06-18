@@ -141,18 +141,23 @@ public class AuthService {
 
     @Transactional
     public void recuperarPassword(RecuperarPasswordRequest request) {
-        Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
-            .orElseThrow(() -> new UsuarioNoEncontradoException("No existe una cuenta con ese email"));
+        // Retorno silencioso si el email no existe — no revelamos qué emails están registrados
+        // (evita que un atacante enumere cuentas probando emails)
+        java.util.Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(request.getEmail());
+        if (usuarioOpt.isEmpty()) return;
+        Usuario usuario = usuarioOpt.get();
 
-        // token de recuperación con solo 1h de expiración por seguridad
+        // Código numérico de 6 dígitos en lugar de UUID largo: el usuario lo puede leer
+        // e ingresar fácilmente desde su email sin tener que hacer clic en un enlace
+        String codigo = String.format("%06d", new java.security.SecureRandom().nextInt(1000000));
+
         TokenEmail tokenRecuperacion = new TokenEmail();
         tokenRecuperacion.setIdUsuario(usuario.getId());
-        tokenRecuperacion.setToken(UUID.randomUUID().toString());
+        tokenRecuperacion.setToken(codigo);
         tokenRecuperacion.setTipo(TipoToken.RESET_PASSWORD);
         tokenRecuperacion.setExpira(LocalDateTime.now().plusHours(1));
         tokenEmailRepository.save(tokenRecuperacion);
 
-        // en dev imprime el link en consola - en prod aquí iría el envío real por SMTP
         emailService.enviarRecuperacionPassword(usuario.getEmail(), tokenRecuperacion.getToken());
     }
 

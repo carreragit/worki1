@@ -14,8 +14,9 @@ import CrearSolicitudScreen     from './src/screens/CrearSolicitudScreen';
 import ActivarTrabajadorScreen  from './src/screens/ActivarTrabajadorScreen';
 import DetalleSolicitudScreen   from './src/screens/DetalleSolicitudScreen';
 import CalificarScreen          from './src/screens/CalificarScreen';
-// Pantalla de chat en tiempo real entre cliente y trabajador (Task 1)
 import ChatScreen               from './src/screens/ChatScreen';
+import RecuperarPasswordScreen  from './src/screens/RecuperarPasswordScreen';
+import ResetPasswordScreen      from './src/screens/ResetPasswordScreen';
 
 const Stack = createStackNavigator();
 
@@ -42,8 +43,10 @@ function AppNavigator() {
         <Stack.Screen name="ActivarTrabajador"  component={ActivarTrabajadorScreen} />
         <Stack.Screen name="DetalleSolicitud"   component={DetalleSolicitudScreen} />
         <Stack.Screen name="Calificar"          component={CalificarScreen} />
-        {/* Ruta de chat: accesible desde DetalleSolicitudScreen cuando estado === ACEPTADA (Task 1) */}
         <Stack.Screen name="Chat"               component={ChatScreen} />
+        {/* Rutas de recuperación de contraseña: accesibles desde LoginScreen sin autenticación */}
+        <Stack.Screen name="RecuperarPassword"  component={RecuperarPasswordScreen} />
+        <Stack.Screen name="ResetPassword"      component={ResetPasswordScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
