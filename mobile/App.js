@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
 
 import { UserProvider, useUser } from './src/context/UserContext';
 import LoginScreen              from './src/screens/LoginScreen';
@@ -24,7 +25,10 @@ const Stack = createStackNavigator();
 function AppNavigator() {
   const { rutaInicial } = useUser();
 
-  if (rutaInicial === null) {
+  // Cargamos nuestra copia de los iconos (assets/fonts) para que funcione en el deploy web.
+  const [fuentesListas] = useFonts({ Ionicons: require('./assets/fonts/Ionicons.ttf') });
+
+  if (rutaInicial === null || !fuentesListas) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#4F46E5" />
