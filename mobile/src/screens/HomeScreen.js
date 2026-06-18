@@ -67,7 +67,7 @@ function WorkerCard({ oficio, onPress }) {
       <View style={styles.cardInfo}>
         <Text style={styles.cardNombre}>{oficio.nombreTrabajador ?? 'Técnico'}</Text>
         <Text style={styles.cardOficio}>{oficio.especialidad}</Text>
-        <Text style={styles.cardPrecio}>Desde ${oficio.tarifaServicioBase?.toLocaleString()}</Text>
+        <Text style={styles.cardPrecio}>Desde ${oficio.tarifaServicioBase?.toLocaleString('es-CL')}</Text>
       </View>
       <View style={styles.cardRating}>
         <Text style={styles.ratingTexto}>★ {oficio.promedioCalificacion?.toFixed(1) ?? 'N/A'}</Text>
