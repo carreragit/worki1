@@ -540,13 +540,13 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
                     <View style={styles.tarifasRow}>
                       {oficioSeleccionado.tarifaHora && (
                         <View style={styles.tarifaItem}>
-                          <Text style={styles.tarifaValor}>${oficioSeleccionado.tarifaHora.toLocaleString()}/hr</Text>
+                          <Text style={styles.tarifaValor}>${oficioSeleccionado.tarifaHora.toLocaleString('es-CL')}/hr</Text>
                           <Text style={styles.tarifaLabel}>Por hora</Text>
                         </View>
                       )}
                       {oficioSeleccionado.tarifaServicioBase && (
                         <View style={styles.tarifaItem}>
-                          <Text style={styles.tarifaValor}>Desde ${oficioSeleccionado.tarifaServicioBase.toLocaleString()}</Text>
+                          <Text style={styles.tarifaValor}>Desde ${oficioSeleccionado.tarifaServicioBase.toLocaleString('es-CL')}</Text>
                           <Text style={styles.tarifaLabel}>Tarifa base</Text>
                         </View>
                       )}

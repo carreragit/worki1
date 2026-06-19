@@ -45,9 +45,43 @@ export default function CrearSolicitudScreen({ route, navigation }) {
     return `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T${hora}:00`;
   };
 
+  // Mientras se escribe, deja solo dígitos e inserta los separadores automáticamente,
+  // de modo que el campo solo pueda quedar como DD/MM/AAAA y HH:MM.
+  const formatearFecha = (txt) => {
+    const d = txt.replace(/\D/g, '').slice(0, 8);
+    let out = d.slice(0, 2);
+    if (d.length >= 3) out += '/' + d.slice(2, 4);
+    if (d.length >= 5) out += '/' + d.slice(4, 8);
+    return out;
+  };
+  const formatearHora = (txt) => {
+    const d = txt.replace(/\D/g, '').slice(0, 4);
+    let out = d.slice(0, 2);
+    if (d.length >= 3) out += ':' + d.slice(2, 4);
+    return out;
+  };
+
+  // La fecha/hora es opcional: si ambos están vacíos se considera válida (no se envía).
+  // Si se ingresó algo, debe tener formato completo, valores reales y no estar en el pasado.
+  const fechaHoraValida = () => {
+    if (!fecha && !hora) return true;
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fecha) || !/^\d{2}:\d{2}$/.test(hora)) return false;
+    const [dia, mes, anio] = fecha.split('/').map(Number);
+    const [hh, mm] = hora.split(':').map(Number);
+    if (mes < 1 || mes > 12 || dia < 1 || dia > 31 || hh > 23 || mm > 59) return false;
+    const d = new Date(anio, mes - 1, dia, hh, mm);
+    // Rechaza fechas inexistentes (ej. 31/02) y fechas pasadas
+    if (d.getDate() !== dia || d.getMonth() !== mes - 1) return false;
+    return d.getTime() >= Date.now();
+  };
+
   const handleEnviar = async () => {
     if (!descripcion.trim()) {
       Alert.alert('Campo requerido', 'Por favor describe tu necesidad.');
+      return;
+    }
+    if (!fechaHoraValida()) {
+      Alert.alert('Fecha u hora inválida', 'Ingresa la fecha como DD/MM/AAAA y la hora como HH:MM, con valores válidos y a futuro.');
       return;
     }
     setEnviando(true);
@@ -101,7 +135,7 @@ export default function CrearSolicitudScreen({ route, navigation }) {
                 </Text>
                 {o.tarifaServicioBase && (
                   <Text style={[styles.oficioTarifa, oficioSeleccionado.id === o.id && { color: '#FFFFFF99' }]}>
-                    Desde ${o.tarifaServicioBase.toLocaleString()}
+                    Desde ${o.tarifaServicioBase.toLocaleString('es-CL')}
                   </Text>
                 )}
                 {oficioSeleccionado.id === o.id && (
@@ -126,10 +160,10 @@ export default function CrearSolicitudScreen({ route, navigation }) {
           <Text style={styles.label}>Fecha y hora preferida</Text>
           <View style={styles.fechaHoraRow}>
             <TextInput style={[styles.input, { flex: 1 }]} placeholder="DD/MM/AAAA"
-              placeholderTextColor={COLORS.textMuted} value={fecha} onChangeText={setFecha}
+              placeholderTextColor={COLORS.textMuted} value={fecha} onChangeText={t => setFecha(formatearFecha(t))}
               keyboardType="numeric" maxLength={10} />
             <TextInput style={[styles.input, { width: 100 }]} placeholder="HH:MM"
-              placeholderTextColor={COLORS.textMuted} value={hora} onChangeText={setHora}
+              placeholderTextColor={COLORS.textMuted} value={hora} onChangeText={t => setHora(formatearHora(t))}
               keyboardType="numeric" maxLength={5} />
           </View>
 
@@ -140,7 +174,7 @@ export default function CrearSolicitudScreen({ route, navigation }) {
 
           <View style={styles.precioBloque}>
             <Text style={styles.precioLabel}>Precio estimado</Text>
-            <Text style={styles.precioValor}>${oficioSeleccionado.tarifaServicioBase?.toLocaleString() ?? '—'}</Text>
+            <Text style={styles.precioValor}>${oficioSeleccionado.tarifaServicioBase?.toLocaleString('es-CL') ?? '—'}</Text>
             <Text style={styles.precioNota}>El pago se coordina directamente con el técnico</Text>
           </View>
         </View>
