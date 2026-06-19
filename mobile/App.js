@@ -37,7 +37,14 @@ function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator id="StackPrincipal" initialRouteName={rutaInicial} screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        id="StackPrincipal"
+        initialRouteName={rutaInicial}
+        // cardStyle flex:1 acota cada pantalla a la altura del viewport en web.
+        // Sin esto, el card del stack usa min-height:100% y crece con el
+        // contenido, desbordando la pantalla sin permitir scroll.
+        screenOptions={{ headerShown: false, cardStyle: { flex: 1 } }}
+      >
         <Stack.Screen name="Login"              component={LoginScreen} />
         <Stack.Screen name="Registro"           component={RegisterScreen} />
         <Stack.Screen name="Tabs"               component={TabNavigator} />
