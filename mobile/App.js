@@ -5,6 +5,9 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+// Hace que Alert.alert funcione en la versión web mostrando un modal propio
+// con los estilos de la app (ver el archivo para el detalle).
+import { DialogoHost } from './src/utils/alertaWeb';
 import { UserProvider, useUser } from './src/context/UserContext';
 import LoginScreen              from './src/screens/LoginScreen';
 import RegisterScreen           from './src/screens/RegisterScreen';
@@ -60,6 +63,8 @@ export default function App() {
         <UserProvider>
           <AppNavigator />
         </UserProvider>
+        {/* Host del modal de Alert.alert para web; en móvil no renderiza nada. */}
+        <DialogoHost />
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );
