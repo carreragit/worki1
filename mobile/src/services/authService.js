@@ -50,3 +50,18 @@ export const logout = async () => {
     await SecureStore.deleteItemAsync(JWT_KEY);
   }
 };
+
+// Solicita el envío del código de recuperación al email indicado.
+// El backend retorna 200 aunque el email no exista (no enumera cuentas),
+// por eso no necesitamos manejar el 404 como error en la UI.
+export const recuperarPassword = async (email) => {
+  const response = await api.post('/api/auth/recuperar-password', { email });
+  return response.data;
+};
+
+// Aplica el reset usando el código de 6 dígitos recibido por email.
+// Los campos deben coincidir exactamente con ResetPasswordRequest.java del backend.
+export const resetPassword = async (token, nuevaPassword) => {
+  const response = await api.post('/api/auth/reset-password', { token, nuevaPassword });
+  return response.data;
+};

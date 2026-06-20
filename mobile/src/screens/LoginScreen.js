@@ -101,6 +101,13 @@ export default function LoginScreen({ navigation, route }) {
         <TouchableOpacity onPress={() => navigation.navigate('Registro')}>
           <Text style={styles.link}>No tienes cuenta? <Text style={styles.linkNegrita}>Registrate</Text></Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('RecuperarPassword')}
+          style={styles.linkOlvide}
+        >
+          <Text style={styles.linkOlvideTexto}>¿Olvidaste tu contraseña?</Text>
+        </TouchableOpacity>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -162,4 +169,6 @@ const styles = StyleSheet.create({
 
   link:        { textAlign: 'center', color: COLORS.textSecondary, fontSize: 14 },
   linkNegrita: { color: COLORS.primary, fontWeight: '700' },
+  linkOlvide:      { alignItems: 'center', marginTop: 16 },
+  linkOlvideTexto: { color: COLORS.textMuted, fontSize: 14 },
 });

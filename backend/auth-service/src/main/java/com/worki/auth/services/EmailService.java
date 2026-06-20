@@ -71,22 +71,19 @@ public class EmailService {
      * @param token Token único de recuperación (expira en 1 hora)
      */
     public void enviarRecuperacionPassword(String email, String token) {
-        // Mismo patrón: construye el enlace con el token de reset.
-        String link = System.getenv().getOrDefault("GATEWAY_URL", "http://localhost:8080")
-                + "/api/auth/reset-password?token=" + token;
-
-        // Fallback a consola si no hay API key.
+        // En desarrollo mostramos el código en consola para no necesitar recibir el email real
         if (resendApiKey.isEmpty()) {
-            System.out.println("[EMAIL] Recuperación de contraseña para " + email + ": " + link);
+            System.out.println("[EMAIL] Código de recuperación para " + email + ": " + token);
             return;
         }
 
+        // El correo muestra el código en texto grande para que el usuario lo escriba en la app
         enviar(email,
-                "Recuperación de contraseña - Worki",
+                "Código de recuperación - Worki",
                 "<p>Recibimos una solicitud para restablecer tu contraseña de <strong>Worki</strong>.</p>" +
-                "<p>Haz clic en el siguiente enlace para crear una nueva contraseña:</p>" +
-                "<p><a href=\"" + link + "\">Restablecer contraseña</a></p>" +
-                "<p>El enlace expira en 1 hora. Si no solicitaste esto, ignora este mensaje.</p>");
+                "<p>Tu código de verificación es:</p>" +
+                "<h1 style='letter-spacing: 8px; font-size: 36px; font-family: monospace; text-align: center;'>" + token + "</h1>" +
+                "<p>Este código expira en <strong>1 hora</strong>. Si no lo solicitaste, ignora este mensaje.</p>");
     }
 
     /**
