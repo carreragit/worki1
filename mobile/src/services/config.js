@@ -9,10 +9,9 @@
  *   - Otro integrante del equipo levanta el backend en su máquina
  *   - Se despliega el backend en la nube (reemplazar por IP pública o dominio)
  *
- * GATEWAY_URL: IP y puerto del gateway (8080). Todas las llamadas HTTP pasan por aquí.
- * WS_URL:      IP y puerto del interaction-service (8084) para el WebSocket del chat.
- *              El WebSocket va directo al interaction-service porque el gateway
- *              no proxea conexiones WebSocket.
+ * GATEWAY_URL: dirección del servidor. Todas las llamadas de la app pasan por aquí.
+ * WS_URL:      dirección para el chat en tiempo real.
  */
-export const GATEWAY_URL = process.env.EXPO_PUBLIC_GATEWAY_URL ?? 'http://192.168.0.5:8080';
-export const WS_URL      = process.env.EXPO_PUBLIC_WS_URL      ?? 'ws://192.168.0.5:8084';
+// URLs de producción para el APK. Apuntan al servidor en la nube.
+export const GATEWAY_URL = process.env.EXPO_PUBLIC_GATEWAY_URL ?? 'https://api.necesitoworki.com';
+export const WS_URL      = process.env.EXPO_PUBLIC_WS_URL      ?? 'wss://ws.necesitoworki.com';
