@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Alert, ActivityIndicator,
+  StyleSheet, Alert, ActivityIndicator, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +31,8 @@ export default function ActivarTrabajadorScreen({ navigation }) {
   const [tarifaHora, setTarifaHora]         = useState('');
   const [tarifaBase, setTarifaBase]         = useState('');
   const [radioKm, setRadioKm]               = useState('5');
+  // Si está activo, el trabajador atiende desde cualquier lugar (radio sin límite)
+  const [cualquierLugar, setCualquierLugar] = useState(false);
   const [enviando, setEnviando]             = useState(false);
 
   const handleActivar = async () => {
@@ -55,7 +57,8 @@ export default function ActivarTrabajadorScreen({ navigation }) {
         perfilId: user.perfilId,
         latitud: loc.coords.latitude,
         longitud: loc.coords.longitude,
-        radioKm: Number(radioKm) || 5,
+        // null = sin límite: el trabajador aparece para clientes a cualquier distancia
+        radioKm: cualquierLugar ? null : (Number(radioKm) || 5),
       });
 
       // Paso 2: crear el primer Oficio vinculado al trabajador recién creado
@@ -126,9 +129,22 @@ export default function ActivarTrabajadorScreen({ navigation }) {
           </View>
         </View>
 
-        <Text style={styles.label}>Radio de cobertura (km)</Text>
-        <TextInput style={styles.input} placeholder="5" placeholderTextColor={COLORS.textMuted}
-          keyboardType="numeric" value={radioKm} onChangeText={setRadioKm} />
+        <View style={styles.toggleFila}>
+          <View style={{ flex: 1, paddingRight: 12 }}>
+            <Text style={styles.label}>Atender desde cualquier lugar</Text>
+            <Text style={styles.nota}>Aparecerás para clientes sin importar la distancia.</Text>
+          </View>
+          <Switch value={cualquierLugar} onValueChange={setCualquierLugar}
+            trackColor={{ true: COLORS.primary }} />
+        </View>
+
+        {!cualquierLugar && (
+          <>
+            <Text style={styles.label}>Radio de cobertura (km)</Text>
+            <TextInput style={styles.input} placeholder="5" placeholderTextColor={COLORS.textMuted}
+              keyboardType="numeric" value={radioKm} onChangeText={setRadioKm} />
+          </>
+        )}
 
         <Text style={styles.nota}>Se usará tu ubicación actual para determinar dónde operas.</Text>
 
@@ -152,6 +168,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: COLORS.textLight, marginBottom: 6, marginTop: 14 },
   input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: COLORS.textPrimary },
   dosCampos: { flexDirection: 'row', gap: 12 },
+  toggleFila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 },
   nota: { fontSize: 12, color: COLORS.textMuted, marginTop: 8, fontStyle: 'italic' },
   btnActivar: { marginTop: 24, backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   btnActivarTexto: { color: COLORS.surface, fontSize: 16, fontWeight: '700' },

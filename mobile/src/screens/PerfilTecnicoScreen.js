@@ -339,7 +339,9 @@ export default function PerfilTecnicoScreen({ route, navigation }) {
             </View>
             <View style={styles.separador} />
             <View style={styles.statItem}>
-              <Text style={styles.statValor}>{oficioInicial.radioKm ?? '?'} km</Text>
+              <Text style={styles.statValor}>
+                {oficioInicial.radioKm != null ? `${oficioInicial.radioKm} km` : 'Sin límite'}
+              </Text>
               <Text style={styles.statLabel}>Radio</Text>
             </View>
           </View>

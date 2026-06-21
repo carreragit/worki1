@@ -96,9 +96,13 @@ public class OficioService {
                     if (t == null) return false;
                     double distancia = calcularDistanciaKm(clienteLatitud, clienteLongitud,
                             t.getLatitud(), t.getLongitud());
-                    // El trabajador aparece si está dentro del radio del cliente
-                    // y el cliente está dentro del radio de cobertura del trabajador
-                    return t.getRadioKm() != null && distancia <= clienteRadioKm && distancia <= t.getRadioKm();
+                    // El cliente debe estar dentro del radio de cobertura del trabajador.
+                    // radioKm null = el trabajador atiende desde cualquier lugar (sin límite).
+                    boolean dentroRadioTrabajador = t.getRadioKm() == null || distancia <= t.getRadioKm();
+                    // El radio del cliente es opcional: si viene, también acota la búsqueda;
+                    // si es null, el trabajador decide solo (cualquier distancia).
+                    boolean dentroRadioCliente = clienteRadioKm == null || distancia <= clienteRadioKm;
+                    return dentroRadioCliente && dentroRadioTrabajador;
                 })
                 .map(o -> {
                     OficioResponseDTO dto = oficioMapper.toDTO(o);
@@ -106,6 +110,10 @@ public class OficioService {
                     dto.setLatitud(t.getLatitud());
                     dto.setLongitud(t.getLongitud());
                     dto.setRadioKm(t.getRadioKm());
+                    // Redondeamos a 1 decimal para mostrar "a 3,2 km" sin valores largos
+                    double distancia = calcularDistanciaKm(clienteLatitud, clienteLongitud,
+                            t.getLatitud(), t.getLongitud());
+                    dto.setDistanciaKm(Math.round(distancia * 10.0) / 10.0);
                     com.worki.user.perfil.Perfil perfil = perfilesPorPerfilId.get(t.getPerfilId());
                     if (perfil != null) {
                         dto.setNombreTrabajador(perfil.getNombreCompleto());
@@ -113,6 +121,8 @@ public class OficioService {
                     }
                     return dto;
                 })
+                // Más cercano primero
+                .sorted(java.util.Comparator.comparingDouble(OficioResponseDTO::getDistanciaKm))
                 .collect(Collectors.toList());
     }
 
