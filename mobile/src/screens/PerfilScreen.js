@@ -11,7 +11,7 @@ import { obtenerPerfilPorId, actualizarPerfil, obtenerOficiosPorTrabajador } fro
 import { COLORS } from '../theme';
 
 export default function PerfilScreen({ navigation }) {
-  const { user, clearUser } = useUser();
+  const { user, clearUser, setUser } = useUser();
 
   const [perfilData, setPerfilData] = useState(null);
   const [cargando, setCargando]     = useState(true);
@@ -63,6 +63,9 @@ export default function PerfilScreen({ navigation }) {
         fechaNacimiento: perfilData?.fechaNacimiento || null,
       });
       setPerfilData(updated);
+      // Sincronizamos el nombre en el contexto global para que el nombre grande y
+      // las iniciales del avatar (que leen de user.nombreCompleto) se actualicen al instante
+      setUser(prev => ({ ...prev, nombreCompleto: updated.nombreCompleto }));
       setEditando(false);
     } catch {
       Alert.alert('Error', 'No se pudo guardar el perfil.');
