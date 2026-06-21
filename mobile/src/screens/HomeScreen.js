@@ -7,7 +7,9 @@
  * Flujo al abrir la pantalla:
  *   1. Pide permiso de ubicación.
  *   2. Obtiene las coordenadas actuales.
- *   3. Llama al endpoint /api/oficios/mapa con lat, lon y radioKm.
+ *   3. Llama al endpoint /api/oficios/mapa con lat y lon (sin radio del cliente):
+ *      muestra a todos los trabajadores cuyo radio de cobertura alcanza al cliente,
+ *      ya ordenados del más cercano al más lejano.
  *   4. Muestra las tarjetas de técnicos filtradas por búsqueda y categoría.
  *
  * Usa useFocusEffect (en lugar de useEffect) para recargar los técnicos cada
@@ -71,6 +73,9 @@ function WorkerCard({ oficio, onPress }) {
       </View>
       <View style={styles.cardRating}>
         <Text style={styles.ratingTexto}>★ {oficio.promedioCalificacion?.toFixed(1) ?? 'N/A'}</Text>
+        {oficio.distanciaKm != null && (
+          <Text style={styles.cardDistancia}>a {oficio.distanciaKm.toLocaleString('es-CL')} km</Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -111,7 +116,9 @@ export default function HomeScreen({ navigation }) {
     try {
       const token = await getToken();
       const especialidad = categoria !== 'Todos' ? categoria : undefined;
-      const params = { latitud: lat, longitud: lon, radioKm: 10, ...(especialidad && { especialidad }) };
+      // Sin radioKm del cliente: ve a todos los trabajadores dispuestos a atenderlo
+      // (manda el radio del trabajador). El backend ya los devuelve del más cercano al más lejano.
+      const params = { latitud: lat, longitud: lon, ...(especialidad && { especialidad }) };
       const res = await axios.get(`${GATEWAY_URL}/api/oficios/mapa`, {
         params,
         headers: { Authorization: `Bearer ${token}` },
@@ -236,6 +243,7 @@ const styles = StyleSheet.create({
   cardPrecio: { fontSize: 12, color: COLORS.primary, marginTop: 3, fontWeight: '600' },
   cardRating: { alignItems: 'center' },
   ratingTexto: { fontSize: 14, fontWeight: '700', color: COLORS.warning },
+  cardDistancia: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
   centrado: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   errorTexto: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginTop: 12, lineHeight: 22 },
   btnConfig: { marginTop: 16, backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 },
