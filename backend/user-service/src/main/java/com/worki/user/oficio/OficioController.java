@@ -47,14 +47,15 @@ public class OficioController {
         return ResponseEntity.ok(oficioService.buscarPorEspecialidad(especialidad));
     }
 
-    // GET /api/oficios/mapa?latitud=-33.45&longitud=-70.65&radioKm=10&especialidad=electricista
-    // latitud, longitud y radioKm son la posicion y radio de busqueda del cliente
-    // especialidad es opcional
+    // GET /api/oficios/mapa?latitud=-33.45&longitud=-70.65&especialidad=electricista
+    // latitud y longitud son la posicion del cliente.
+    // radioKm (opcional) acota la busqueda; si no viene, manda solo el radio del trabajador.
+    // especialidad es opcional. Los resultados vienen ordenados del mas cercano al mas lejano.
     @GetMapping("/mapa")
     public ResponseEntity<List<OficioResponseDTO>> obtenerParaMapa(
             @RequestParam Double latitud,
             @RequestParam Double longitud,
-            @RequestParam Double radioKm,
+            @RequestParam(required = false) Double radioKm,
             @RequestParam(required = false) String especialidad) {
         return ResponseEntity.ok(oficioService.obtenerParaMapa(latitud, longitud, radioKm, especialidad));
     }
