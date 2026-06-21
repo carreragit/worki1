@@ -93,14 +93,16 @@ public class OficioService {
         return oficios.stream()
                 .filter(o -> {
                     Trabajador t = trabajadoresPorId.get(o.getTrabajadorId());
-                    if (t == null || t.getRadioKm() == null) return false;
+                    if (t == null) return false;
                     double distancia = calcularDistanciaKm(clienteLatitud, clienteLongitud,
                             t.getLatitud(), t.getLongitud());
                     // El cliente debe estar dentro del radio de cobertura del trabajador.
+                    // radioKm null = el trabajador atiende desde cualquier lugar (sin límite).
+                    boolean dentroRadioTrabajador = t.getRadioKm() == null || distancia <= t.getRadioKm();
                     // El radio del cliente es opcional: si viene, también acota la búsqueda;
                     // si es null, el trabajador decide solo (cualquier distancia).
                     boolean dentroRadioCliente = clienteRadioKm == null || distancia <= clienteRadioKm;
-                    return dentroRadioCliente && distancia <= t.getRadioKm();
+                    return dentroRadioCliente && dentroRadioTrabajador;
                 })
                 .map(o -> {
                     OficioResponseDTO dto = oficioMapper.toDTO(o);
