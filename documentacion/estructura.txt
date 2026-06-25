@@ -1,138 +1,170 @@
-Estructura ideal
+Estructura actual (real)
+
+Nota sobre convenciones de paquetes:
+- auth-service usa capas (models / repositories / services / controllers / dto).
+- user-service e interaction-service usan paquetes POR DOMINIO: cada dominio
+  agrupa su entidad, repositorio, servicio, controlador, mapper y DTOs juntos.
+
 worki/
 ├── backend/
 │   │
-│   ├── gateway/
+│   ├── gateway/                                ← único punto de entrada público (8080)
 │   │   └── src/main/java/com/worki/gateway/
 │   │       ├── GatewayApplication.java
 │   │       └── config/
-│   │           ├── GatewayConfig.java        ← rutas a cada MS
-│   │           └── CorsConfig.java           ← CORS global
+│   │           ├── JwtAuthFilter.java          ← valida JWT e inyecta X-User-Id / X-User-Email / X-User-Role
+│   │           └── JwtService.java
 │   │
-│   ├── auth-service/
+│   ├── auth-service/                           ← 8081, worki_auth_db
 │   │   └── src/main/java/com/worki/auth/
+│   │       ├── AuthApplication.java
 │   │       ├── models/
 │   │       │   ├── enums/
-│   │       │   │   ├── Rol.java              ← USUARIO, ADMIN
-│   │       │   │   └── TipoToken.java        ← VERIFICACION_EMAIL, RESET_PASSWORD
+│   │       │   │   ├── Rol.java                ← USUARIO, ADMIN
+│   │       │   │   └── TipoToken.java          ← VERIFICACION_EMAIL, RESET_PASSWORD
 │   │       │   ├── Usuario.java
-│   │       │   ├── TokenEmail.java           ← tokens para verificación y reset password
+│   │       │   ├── TokenEmail.java             ← tokens para verificación y reset password
 │   │       │   └── Referido.java
 │   │       ├── repositories/
 │   │       │   ├── UsuarioRepository.java
 │   │       │   ├── TokenEmailRepository.java
 │   │       │   └── ReferidoRepository.java
 │   │       ├── services/
-│   │       │   ├── AuthService.java
-│   │       │   ├── RegistroService.java
-│   │       │   ├── EmailService.java
-│   │       │   ├── VerificacionService.java
-│   │       │   ├── PasswordResetService.java
-│   │       │   └── ReferidoService.java
+│   │       │   ├── AuthService.java            ← login, registro, verificación, recuperar/reset password
+│   │       │   └── EmailService.java
 │   │       ├── controllers/
-│   │       │   ├── AuthController.java       ← POST /api/auth/login, GET /api/auth/me
-│   │       │   ├── RegistroController.java   ← POST /api/auth/registro
-│   │       │   ├── VerificacionController.java
-│   │       │   ├── PasswordResetController.java
-│   │       │   ├── ReferidoController.java
-│   │       │   └── UsuarioInternalController.java  ← GET /internal/usuarios/{id}
+│   │       │   └── AuthController.java         ← /api/auth/** (login, registro, verificar-email, recuperar/reset)
 │   │       ├── dto/
 │   │       │   ├── request/
 │   │       │   │   ├── LoginRequest.java
-│   │       │   │   └── RegistroRequest.java
+│   │       │   │   ├── RegistroRequest.java
+│   │       │   │   ├── RecuperarPasswordRequest.java
+│   │       │   │   └── ResetPasswordRequest.java
 │   │       │   └── response/
-│   │       │       ├── LoginResponse.java
-│   │       │       └── RegistroResponse.java
-│   │       ├── jwt/
-│   │       │   └── JwtService.java
+│   │       │       ├── AuthResponse.java
+│   │       │       └── UsuarioResponse.java
 │   │       ├── config/
 │   │       │   ├── SecurityConfig.java
-│   │       │   └── OpenApiConfig.java
+│   │       │   ├── JwtService.java
+│   │       │   ├── OpenApiConfig.java
+│   │       │   └── RestTemplateConfig.java
 │   │       └── exception/
 │   │           ├── GlobalExceptionHandler.java
 │   │           ├── EmailYaRegistradoException.java
+│   │           ├── EmailNoVerificadoException.java
 │   │           ├── CredencialesInvalidasException.java
-│   │           └── TokenInvalidoException.java
+│   │           ├── TokenInvalidoException.java
+│   │           └── UsuarioNoEncontradoException.java
 │   │
-│   ├── user-service/
+│   ├── user-service/                           ← 8082, worki_user_db — paquetes por dominio
 │   │   └── src/main/java/com/worki/user/
-│   │       ├── models/
-│   │       │   ├── enums/
-│   │       │   ├── Perfil.java               ← perfil general del usuario
-│   │       │   ├── PerfilOficio.java         ← sub-perfil por oficio; incluye latitud, longitud, comuna y disponibilidadInmediata
-│   │       │   └── Admin.java
-│   │       ├── repositories/
+│   │       ├── UserApplication.java
+│   │       ├── perfil/                          ← perfil general del usuario
+│   │       │   ├── Perfil.java
 │   │       │   ├── PerfilRepository.java
-│   │       │   ├── PerfilOficioRepository.java
-│   │       │   └── AdminRepository.java
-│   │       ├── services/
 │   │       │   ├── PerfilService.java
-│   │       │   ├── PerfilOficioService.java
-│   │       │   ├── BusquedaService.java      ← filtra por proximidad usando Haversine
-│   │       │   └── AdminService.java
-│   │       ├── controllers/
 │   │       │   ├── PerfilController.java
-│   │       │   ├── PerfilOficioController.java
-│   │       │   ├── BusquedaController.java   ← busca por oficio, comuna, distancia y modo emergencia
-│   │       │   └── AdminController.java
-│   │       ├── dto/
-│   │       │   ├── request/
-│   │       │   └── response/
-│   │       ├── config/
+│   │       │   ├── PerfilInternalController.java   ← GET /internal/usuarios/{id}
+│   │       │   ├── PerfilMapper.java
+│   │       │   └── dto/ (PerfilRequestDTO, PerfilResponseDTO)
+│   │       ├── trabajador/                      ← un Perfil que se activa como trabajador
+│   │       │   ├── Trabajador.java
+│   │       │   ├── TrabajadorRepository.java
+│   │       │   ├── TrabajadorService.java
+│   │       │   ├── TrabajadorController.java
+│   │       │   ├── TrabajadorMapper.java
+│   │       │   └── dto/ (TrabajadorRequestDTO, TrabajadorResponseDTO)
+│   │       ├── oficio/                          ← la "publicación": un oficio ofrecido (lat, lng, comuna)
+│   │       │   ├── Oficio.java
+│   │       │   ├── OficioRepository.java
+│   │       │   ├── OficioService.java
+│   │       │   ├── OficioController.java
+│   │       │   ├── OficioInternalController.java
+│   │       │   ├── OficioMapper.java
+│   │       │   └── dto/ (OficioRequestDTO, OficioResponseDTO)
+│   │       ├── certificado/                     ← certificados del trabajador
+│   │       │   ├── Certificado.java
+│   │       │   ├── CertificadoRepository.java
+│   │       │   ├── CertificadoService.java
+│   │       │   ├── CertificadoController.java
+│   │       │   └── dto/ (CertificadoResponseDTO)
+│   │       ├── evidencia/                       ← evidencia de trabajos realizados
+│   │       │   ├── Evidencia.java
+│   │       │   ├── EvidenciaRepository.java
+│   │       │   ├── EvidenciaService.java
+│   │       │   ├── EvidenciaController.java
+│   │       │   └── dto/ (EvidenciaResponseDTO)
 │   │       └── exception/
+│   │           └── GlobalExceptionHandler.java
 │   │
-│   └── interaction-service/
+│   └── interaction-service/                     ← 8084, worki_interaction_db — paquetes por dominio
 │       └── src/main/java/com/worki/interaction/
-│           ├── models/
-│           │   ├── enums/
-│           │   ├── Solicitud.java            ← referencia perfilOficioId
-│           │   ├── Mensaje.java
-│           │   ├── Calificacion.java         ← referencia perfilOficioId (calificación por oficio)
-│           │   └── Comprobante.java          ← boleta/foto asociada a una Solicitud
-│           ├── repositories/
+│           ├── InteractionApplication.java
+│           ├── solicitud/                        ← máquina de estados PENDIENTE → ACEPTADA → COMPLETADA
+│           │   ├── Solicitud.java
+│           │   ├── EstadoSolicitud.java
 │           │   ├── SolicitudRepository.java
-│           │   ├── MensajeRepository.java
-│           │   ├── CalificacionRepository.java
-│           │   └── ComprobanteRepository.java
-│           ├── services/
 │           │   ├── SolicitudService.java
-│           │   ├── ChatService.java
-│           │   ├── CalificacionService.java
-│           │   └── ComprobanteService.java
-│           ├── controllers/
 │           │   ├── SolicitudController.java
-│           │   ├── ChatController.java       ← WebSocket
+│           │   └── dto/ (CrearSolicitudRequest, ActualizarEstadoRequest,
+│           │           VerificarCodigoRequest, SolicitudResponse)
+│           ├── calificacion/
+│           │   ├── Calificacion.java
+│           │   ├── CalificacionRepository.java
+│           │   ├── CalificacionService.java
 │           │   ├── CalificacionController.java
-│           │   └── ComprobanteController.java
-│           ├── dto/
-│           │   ├── request/
-│           │   └── response/
+│           │   └── dto/ (CrearCalificacionRequest, CalificacionResponse,
+│           │           PromedioCalificacionResponse)
+│           ├── mensaje/                          ← chat por WebSocket (STOMP)
+│           │   ├── Mensaje.java
+│           │   ├── TipoMensaje.java
+│           │   ├── MensajeRepository.java
+│           │   ├── MensajeService.java
+│           │   ├── MensajeController.java
+│           │   └── dto/ (EnviarMensajeRequest, MensajeResponse)
 │           ├── config/
+│           │   ├── WebSocketConfig.java
+│           │   ├── WebSocketAuthInterceptor.java
+│           │   └── RestTemplateConfig.java
 │           └── exception/
+│               └── GlobalExceptionHandler.java
 │
-└── frontend/
-    └── src/
-        ├── pages/
-        │   ├── Login/
-        │   ├── Registro/
-        │   ├── BuscarServicio/
-        │   ├── PerfilUsuario/               ← muestra perfil general + lista de oficios
-        │   ├── PerfilOficio/                ← detalle de un oficio específico con calificaciones
-        │   ├── PerfilCliente/
-        │   ├── Chat/
-        │   ├── Calificaciones/
-        │   ├── Comprobantes/
-        │   └── Admin/
-        ├── components/
-        │   ├── Navbar/
-        │   ├── TarjetaOficio/               ← reemplaza TarjetaServicio, muestra un sub-perfil
-        │   ├── MapaGeo/
-        │   ├── FormularioCalificacion/
-        │   ├── SubirComprobante/
-        │   └── ChatBox/
-        ├── services/
-        │   ├── authService.js
-        │   ├── userService.js               ← incluye llamadas a perfilOficio y busqueda
-        │   └── interactionService.js
-        └── context/
-            └── AuthContext.jsx              ← JWT global en React
+├── mobile/                                       ← app Expo + React Native (también corre como web vía RN Web)
+│   ├── App.js
+│   ├── index.js
+│   ├── app.json
+│   ├── package.json
+│   ├── android/                                  ← proyecto nativo Android (build de APK)
+│   ├── assets/
+│   └── src/
+│       ├── context/
+│       │   └── UserContext.js                    ← userId, perfilId, esTrabajador, trabajadorId (estado global)
+│       ├── navigation/
+│       │   └── TabNavigator.js                   ← tabs Inicio / Solicitudes / Perfil
+│       ├── screens/
+│       │   ├── LoginScreen.js
+│       │   ├── RegisterScreen.js
+│       │   ├── RecuperarPasswordScreen.js
+│       │   ├── ResetPasswordScreen.js
+│       │   ├── HomeScreen.js
+│       │   ├── PerfilScreen.js
+│       │   ├── PerfilTecnicoScreen.js
+│       │   ├── ActivarTrabajadorScreen.js
+│       │   ├── SolicitudesScreen.js
+│       │   ├── CrearSolicitudScreen.js
+│       │   ├── DetalleSolicitudScreen.js
+│       │   ├── ChatScreen.js
+│       │   └── CalificarScreen.js
+│       ├── services/
+│       │   ├── config.js                         ← GATEWAY_URL y WS_URL (cambiar al cambiar de IP/WiFi)
+│       │   ├── authService.js                    ← JWT en expo-secure-store
+│       │   ├── userService.js
+│       │   ├── solicitudService.js
+│       │   ├── calificacionService.js
+│       │   └── mensajeService.js
+│       ├── utils/
+│       │   └── alertaWeb.js
+│       └── theme.js
+│
+├── documentacion/
+└── docker-compose.yml
