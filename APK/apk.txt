@@ -1,0 +1,1 @@
+Este directorio contiene un respaldo de la APK compilado por seguridad a pesar de que no se pidió en la pauta se hace un respaldo aquí.
